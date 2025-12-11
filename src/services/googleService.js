@@ -1,31 +1,28 @@
 // src/services/googleService.js
+// 使用 Google Identity Services + gapi.client
+// 不再使用 gapi.auth2，避免新 OAuth Client 被阻擋
+// 與 App.jsx 介面相容：
+//   GoogleService.initClient()
+//   GoogleService.login()
+//   GoogleService.logout()
+//   GoogleService.getUser()
+//   GoogleService.fetchSheetData()
+//   GoogleService.syncToSheet()
+//   GoogleService.fetchCalendarEvents()
+//   GoogleService.addToCalendar()
+//   GoogleService.uploadToDrive()
+//   GoogleService.createDriveFolder()
 
-/**
- * GoogleService - 實作版（與 App.jsx 介面相容）
- *
- * 介面（提供給 App.jsx 使用）：
- *   GoogleService.initClient(): Promise<boolean>
- *   GoogleService.login(): Promise<{name,email,photo}>
- *   GoogleService.logout(): Promise<void>
- *   GoogleService.getUser(): {name,email,photo} | null
- *
- *   GoogleService.syncToSheet(sheetName, dataArray): Promise<any>
- *   GoogleService.fetchSheetData(sheetName): Promise<string[][]>
- *
- *   GoogleService.addToCalendar(event): Promise<any>
- *   GoogleService.fetchCalendarEvents(): Promise<any[]>
- *
- *   GoogleService.createDriveFolder(clientName): Promise<string>        // 回傳 webViewLink
- *   GoogleService.uploadToDrive(fileOrMock, folderName): Promise<any>   // 回傳檔案資訊
- */
-
-// 從 Vite 環境變數讀取設定
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const SPREADSHEET_ID = import.meta.env.VITE_GOOGLE_SPREADSHEET_ID;
 const DRIVE_ROOT_FOLDER_ID = import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_ID;
 
+// GIS 的 scope 要一次包含所有需要的權限
 const SCOPES = [
+  "openid",
+  "email",
+  "profile",
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/spreadsheets",
   "https://www.googleapis.com/auth/calendar",
@@ -38,8 +35,12 @@ const DISCOVERY_DOCS = [
 ];
 
 let gapiInited = false;
+let gisInited = false;
+let tokenClient = null;
+let accessToken = null;
+let currentUserProfile = null;
 
-/* ---------------- 共用：載入 & 初始化 gapi ---------------- */
+/* ---------------- Script 載入 ---------------- */
 
 function loadGapiScript() {
   return new Promise((resolve, reject) => {
@@ -58,6 +59,27 @@ function loadGapiScript() {
   });
 }
 
+function loadGisScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      return resolve();
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (err) => {
+      console.error("[GoogleService] 無法載入 GIS script:", err);
+      reject(err);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+/* ---------------- gapi.client 初始化（只負責 API，不負責登入） ---------------- */
+
 async function ensureGapiClient() {
   if (gapiInited) return;
 
@@ -75,12 +97,11 @@ async function ensureGapiClient() {
 
   await loadGapiScript();
 
-  // 先載入 client:auth2 模組
   await new Promise((resolve, reject) => {
-    window.gapi.load("client:auth2", {
+    window.gapi.load("client", {
       callback: resolve,
       onerror: (err) => {
-        console.error("[GoogleService] gapi.load(client:auth2) 失敗:", err);
+        console.error("[GoogleService] gapi.load(client) 失敗:", err);
         reject(err);
       },
     });
@@ -89,19 +110,36 @@ async function ensureGapiClient() {
   try {
     await window.gapi.client.init({
       apiKey: API_KEY,
-      clientId: CLIENT_ID,
       discoveryDocs: DISCOVERY_DOCS,
-      scope: SCOPES,
     });
     gapiInited = true;
     console.log("[GoogleService] gapi.client.init OK");
   } catch (err) {
     console.error("[GoogleService] gapi.client.init 發生錯誤:", err);
-    if (err && err.error) {
-      console.error("[GoogleService] error.details =", err.error);
-    }
     throw err;
   }
+}
+
+/* ---------------- GIS 初始化（負責 Access Token） ---------------- */
+
+async function ensureGisClient() {
+  if (gisInited && tokenClient) return;
+
+  await loadGisScript();
+
+  if (!CLIENT_ID) {
+    console.error("[GoogleService] 缺少 CLIENT_ID（GIS）");
+    throw new Error("Missing CLIENT_ID for GIS");
+  }
+
+  tokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: () => {}, // 真正 callback 會在 login() 時覆寫
+  });
+
+  gisInited = true;
+  console.log("[GoogleService] GIS token client init OK");
 }
 
 /* ---------------- Auth: initClient / login / logout / getUser ---------------- */
@@ -109,8 +147,9 @@ async function ensureGapiClient() {
 async function initClient() {
   try {
     await ensureGapiClient();
-    const auth = window.gapi.auth2.getAuthInstance();
-    const signedIn = auth.isSignedIn.get();
+    await ensureGisClient();
+
+    const signedIn = !!accessToken;
     console.log("[GoogleService] initClient, signedIn =", signedIn);
     return signedIn;
   } catch (err) {
@@ -121,33 +160,68 @@ async function initClient() {
 
 async function login() {
   await ensureGapiClient();
-  const auth = window.gapi.auth2.getAuthInstance();
-  const user = await auth.signIn();
-  const profile = user.getBasicProfile();
-  return {
-    name: profile.getName(),
-    email: profile.getEmail(),
-    photo: profile.getImageUrl(),
-  };
+  await ensureGisClient();
+
+  return new Promise((resolve, reject) => {
+    try {
+      tokenClient.callback = async (tokenResponse) => {
+        if (tokenResponse.error) {
+          console.error("[GoogleService] 取得 Access Token 失敗:", tokenResponse);
+          reject(tokenResponse);
+          return;
+        }
+
+        accessToken = tokenResponse.access_token;
+        window.gapi.client.setToken({ access_token: accessToken });
+
+        try {
+          // 取得使用者基本資訊（需在 OAuth 同意畫面勾選 userinfo.* scopes）
+          const userRes = await window.gapi.client.request({
+            path: "https://openidconnect.googleapis.com/v1/userinfo",
+          });
+
+          const result = userRes.result || {};
+          currentUserProfile = {
+            name: result.name || "",
+            email: result.email || "",
+            photo: result.picture || "",
+          };
+
+          console.log("[GoogleService] login OK, user =", currentUserProfile);
+          resolve(currentUserProfile);
+        } catch (userErr) {
+          // userinfo 失敗，不阻斷登入流程，但記錄錯誤
+          console.error("[GoogleService] 取得使用者資訊失敗:", userErr);
+          currentUserProfile = { name: "", email: "", photo: "" };
+          resolve(currentUserProfile);
+        }
+      };
+
+      tokenClient.requestAccessToken({ prompt: "consent" });
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 async function logout() {
-  if (!window.gapi?.auth2) return;
-  const auth = window.gapi.auth2.getAuthInstance();
-  if (auth) {
-    await auth.signOut();
+  try {
+    if (accessToken && window.google && window.google.accounts && window.google.accounts.oauth2) {
+      window.google.accounts.oauth2.revoke(accessToken, () => {
+        console.log("[GoogleService] Access Token revoked");
+      });
+    }
+  } catch (e) {
+    console.warn("[GoogleService] revoke token 失敗（可忽略）:", e);
   }
+
+  accessToken = null;
+  currentUserProfile = null;
+  window.gapi?.client?.setToken(null);
 }
 
 function getUser() {
-  const auth = window.gapi?.auth2?.getAuthInstance?.();
-  if (!auth || !auth.isSignedIn.get()) return null;
-  const profile = auth.currentUser.get().getBasicProfile();
-  return {
-    name: profile.getName(),
-    email: profile.getEmail(),
-    photo: profile.getImageUrl(),
-  };
+  return currentUserProfile;
 }
 
 /* ---------------- Sheets：syncToSheet / fetchSheetData ---------------- */
@@ -296,7 +370,6 @@ async function createDriveFolder(clientName) {
 async function uploadToDrive(file, folderName) {
   await ensureGapiClient();
 
-  // 如果目前前端傳的不是 File 物件，先當 mock 處理
   if (!file || typeof file.arrayBuffer !== "function") {
     console.log(
       "[GoogleService.uploadToDrive] Mock upload:",
