@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
-import GoogleService from "./services/googleService\";
+import GoogleService from "./services/googleService";
 import HealthCheck from "./components/HealthCheck";
 // 移除外部依賴，改用 window.gapi 動態載入，避免預覽環境報錯
 import { 
