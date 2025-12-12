@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import GoogleService from \"./services/googleService\";
+import HealthCheck from "./components/HealthCheck";
 // 移除外部依賴，改用 window.gapi 動態載入，避免預覽環境報錯
 import { 
   LayoutDashboard, 
@@ -802,7 +803,7 @@ useEffect(() => {
         </nav>
         {/* User Profile */}
         <div className="p-4 border-t border-gray-100">
-           <div className="flex items-center gap-3 px-2">
+           <div className="flex-1 overflow-auto p-8">
               <img src={user?.photo || "https://ui-avatars.com/api/?name=User"} alt="User" className="w-8 h-8 rounded-full bg-gray-200" />
               <div className="flex-1 overflow-hidden">
                  <p className="text-sm font-bold text-gray-900 truncate">{user?.name || "Loading..."}</p>
@@ -817,7 +818,10 @@ useEffect(() => {
            <h2 className="text-xl font-bold text-gray-800">{{schedule:'行程管理', projects:'專案管理', finance:'財務管理', clients:'客戶管理', vendors:'廠商管理', inventory:'庫存管理'}[activeTab]}</h2>
            <div className="flex items-center gap-4"><Bell size={20} className="text-gray-400"/><div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">{user?.name?.[0] || "A"}</div></div>
         </header>
-        <div className="flex-1 overflow-auto p-8">{renderContent()}</div>
+         <div className="flex-1 overflow-auto p-8">
+           {renderContent()}
+           <HealthCheck />
+         </div>
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </main>
     </div>
