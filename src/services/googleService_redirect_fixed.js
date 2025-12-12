@@ -1,4 +1,6 @@
-﻿const GoogleService = (() => {
+// File: src/services/googleService.js
+
+const GoogleService = (() => {
   const SCOPES = [
     "openid",
     "email",
@@ -25,7 +27,7 @@
       import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin,
     spreadsheetId: import.meta.env.VITE_GOOGLE_SPREADSHEET_ID,
     driveRootFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_ID,
-    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "",
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "", // local 可設成 https://senteng-design-system.vercel.app
   };
 
   function assertConfig() {
@@ -84,8 +86,8 @@
     u.searchParams.set("redirect_uri", cfg.redirectUri);
     u.searchParams.set("response_type", "code");
     u.searchParams.set("scope", SCOPES);
-    u.searchParams.set("access_type", "offline");
-    u.searchParams.set("prompt", "consent");
+    u.searchParams.set("access_type", "offline"); // 不一定會拿到 refresh_token（web 端常受限制）
+    u.searchParams.set("prompt", "consent"); // 需要時再改回 select_account
     u.searchParams.set("include_granted_scopes", "true");
     u.searchParams.set("state", state);
     u.searchParams.set("code_challenge", codeChallenge);
@@ -146,10 +148,12 @@
       redirectUri: cfg.redirectUri,
     });
 
+    // 儲存 access_token，讓 reload 後可以恢復登入狀態
     if (token?.access_token) {
       sessionStorage.setItem(TOKEN_KEY, token.access_token);
     }
 
+    // 清理一次性資料
     sessionStorage.removeItem(STATE_KEY);
     sessionStorage.removeItem(VERIFIER_KEY);
     stripAuthParamsFromUrl();
@@ -166,6 +170,7 @@
       discoveryDocs: DISCOVERY_DOCS,
     });
 
+    // 如果有 token，就設回去
     const accessToken = sessionStorage.getItem(TOKEN_KEY);
     if (accessToken) {
       window.gapi.client.setToken({ access_token: accessToken });
@@ -175,16 +180,18 @@
   async function initClient() {
     assertConfig();
 
-    await handleRedirectCallbackIfAny().catch((e) => {
+    // 1) 先處理 redirect callback（如果有 code）
+    const result = await handleRedirectCallbackIfAny().catch((e) => {
       console.error("[GoogleService] handleRedirectCallback failed:", e);
       throw e;
     });
 
+    // 2) 初始化 gapi client
     await initGapiClient();
 
     const token = window.gapi.client.getToken();
     const signedIn = Boolean(token?.access_token);
-    return { signedIn };
+    return { signedIn, result };
   }
 
   async function loginRedirect() {
@@ -209,6 +216,8 @@
       window.gapi.client.setToken(null);
     }
   }
+
+  // ====== 你原本的 API wrapper（保留介面；內部用 gapi） ======
 
   async function fetchSheetData(sheetName) {
     if (!cfg.spreadsheetId) throw new Error("Missing VITE_GOOGLE_SPREADSHEET_ID");
