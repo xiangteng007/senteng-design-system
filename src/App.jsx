@@ -1,6 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
-import GoogleService from "./services/googleService";
-import HealthCheck from "./components/HealthCheck";
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 // 移除外部依賴，改用 window.gapi 動態載入，避免預覽環境報錯
 import { 
   LayoutDashboard, 
@@ -152,10 +150,137 @@ const MOCK_DB = {
   ]
 };
 
-const EMPTY_DB = { calendar: [], projects: [], clients: [], vendors: [], inventory: [], finance: { accounts: [], transactions: [] } };
+// --- REAL GOOGLE SERVICE (Safe Dynamic Script Loading) ---
+const GoogleService = {
+  // 動態載入 Google API Script，不依賴 npm 套件
+  initClient: () => {
+    return new Promise((resolve, reject) => {
+      try {
+        if (window.gapi) {
+           initGapi(resolve, reject);
+           return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = "https://apis.google.com/js/api.js";
+        script.onload = () => {
+          initGapi(resolve, reject);
+        };
+        script.onerror = (err) => {
+          console.warn("Failed to load Google API script (Offline or Blocked)", err);
+          // 不 reject，允許使用 mock mode，避免 Script Error 崩潰
+          resolve(false);
+        };
+        document.body.appendChild(script);
+      } catch (e) {
+        console.warn("Google API init exception:", e);
+        resolve(false);
+      }
+    });
+  },
 
+  // 登入
+  login: async () => {
+    if (!window.gapi || !window.gapi.auth2) throw new Error("Google API not loaded");
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    // 檢查是否有 Client ID
+    if (!authInstance) {
+        throw new Error("Missing Client ID. Please configure VITE_GOOGLE_CLIENT_ID in .env");
+    }
+    await authInstance.signIn();
+    const profile = authInstance.currentUser.get().getBasicProfile();
+    return {
+      name: profile.getName(),
+      email: profile.getEmail(),
+      photo: profile.getImageUrl()
+    };
+  },
 
+  // 登出
+  logout: async () => {
+    if (!window.gapi || !window.gapi.auth2) return;
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    if(authInstance) await authInstance.signOut();
+  },
 
+  // 取得使用者資訊 (如果已登入)
+  getUser: () => {
+    if (!window.gapi || !window.gapi.auth2) return null;
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    if (authInstance && authInstance.isSignedIn.get()) {
+      const profile = authInstance.currentUser.get().getBasicProfile();
+      return {
+        name: profile.getName(),
+        email: profile.getEmail(),
+        photo: profile.getImageUrl()
+      };
+    }
+    return null;
+  },
+
+  // --- API 呼叫 ---
+  fetchSheetData: (sheetName) => new Promise(resolve => {
+    // 實際應為: window.gapi.client.sheets.spreadsheets.values.get(...)
+    setTimeout(() => { if (MOCK_DB[sheetName]) resolve(MOCK_DB[sheetName]); }, 800);
+  }),
+  
+  fetchCalendarEvents: () => new Promise(resolve => {
+    setTimeout(() => resolve(MOCK_DB.calendar), 1000); 
+  }),
+  
+  addToCalendar: (event) => new Promise(resolve => {
+    setTimeout(() => { console.log("[Google API] Added to Calendar:", event); resolve({ success: true }); }, 800);
+  }),
+  
+  syncToSheet: (sheetName, data) => new Promise(resolve => {
+    setTimeout(() => { console.log(`[Google API] Synced to Sheet [${sheetName}]:`, data); resolve({ success: true }); }, 1000);
+  }),
+  
+  uploadToDrive: (file, folderName) => new Promise(resolve => {
+    setTimeout(() => { 
+        console.log(`[Google API] Uploaded ${file.name} to Drive/Projects/${folderName}/`);
+        resolve({ success: true, url: `https://drive.google.com/file/d/mock-${Date.now()}` }); 
+    }, 1500);
+  }),
+  
+  createDriveFolder: (clientName) => new Promise(resolve => {
+    setTimeout(() => {
+        resolve(`https://drive.google.com/drive/folders/mock-${clientName}-${Date.now()}`);
+    }, 1000);
+  })
+};
+
+// 內部 Helper: 初始化 gapi client
+function initGapi(resolve, reject) {
+  if (!CLIENT_ID || !API_KEY) {
+    console.warn("GAPI: Missing Client ID or API Key. Running in Mock Mode.");
+    resolve(false);
+    return;
+  }
+  
+  try {
+    window.gapi.load('client:auth2', () => {
+      window.gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: [
+          "https://sheets.googleapis.com/$discovery/rest?version=v4",
+          "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
+        ],
+        scope: SCOPES,
+      }).then(() => {
+        resolve(window.gapi.auth2.getAuthInstance().isSignedIn.get());
+      }).catch(err => {
+        console.warn("GAPI Init Warning (Network or Config error):", err);
+        resolve(false); 
+      });
+    });
+  } catch (e) {
+    console.error("GAPI Load Error:", e);
+    resolve(false);
+  }
+}
 
 // --- HELPER COMPONENTS ---
 const Card = ({ children, className = "", noPadding = false, onClick }) => (
@@ -436,7 +561,20 @@ const Schedule = ({ data, loading, addToast }) => {
   return (
     <div className="space-y-6 h-full flex flex-col animate-fade-in">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+         <div className="flex items-center gap-4">
+              <select
+                className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                value={["clients","inventory","vendors"].includes(activeTab) ? activeTab : "clients"}
+                onChange={(e) => {
+                  setActiveProject(null);
+                  setActiveTab(e.target.value);
+                }}
+              >
+                <option value="clients">客戶管理 (clients)</option>
+                <option value="vendors">廠商管理 (vendors)</option>
+                <option value="inventory">庫存管理 (inventory)</option>
+              </select>
+
           <h2 className="text-2xl font-bold text-gray-800">行程管理</h2>
           <div className="flex items-center bg-white rounded-lg border border-gray-200 p-1">
             <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={20}/></button>
@@ -586,7 +724,7 @@ const Inventory = ({ data, loading, addToast }) => {
 const App = () => {
   const [activeTab, setActiveTab] = useState('schedule');
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(EMPTY_DB);
+  const [data, setData] = useState(MOCK_DB);
   const [toasts, setToasts] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [user, setUser] = useState(null); // Real User State
@@ -599,131 +737,47 @@ const App = () => {
   };
   const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // Initialize Google API on Load (Redirect + PKCE)
-useEffect(() => {
-  let cancelled = false;
+  // Initialize GAPI on Load
+  useEffect(() => {
+    setLoading(true);
+    GoogleService.initClient()
+      .then(isSignedIn => {
+        if(isSignedIn) {
+          setUser(GoogleService.getUser());
+        }
+      })
+      .catch(err => console.log("GAPI Init failed (likely mock mode)", err))
+      .finally(() => {
+         // Mock data load as fallback
+         setTimeout(() => { setData(MOCK_DB); setLoading(false); }, 1000);
+      });
+  }, []);
 
-  const toRowObjects = (values) => {
-    if (!Array.isArray(values) || values.length === 0) return [];
-    const [header, ...rows] = values;
-    if (!Array.isArray(header)) return [];
-    return rows
-      .filter(r => Array.isArray(r) && r.some(v => String(v ?? "").trim() !== ""))
-      .map((r) => {
-        const obj = {};
-        header.forEach((h, i) => {
-          const key = String(h ?? "").trim();
-          if (!key) return;
-          obj[key] = r[i] ?? "";
-        });
-        return obj;
+  const handleLogin = () => {
+    // 重要：不要在 click handler 裡先 await（或經過任何 async chain）才觸發 Google 授權，
+    // 否則瀏覽器可能把它判定為非 user-gesture 而擋掉 popup。
+    setIsLoggingIn(true);
+
+    GoogleService.login()
+      .then((userData) => {
+        setUser(userData);
+        addToast(`歡迎回來，${userData?.name || "您好"}`, "success");
+      })
+      .catch((e) => {
+        console.error("[App] handleLogin error:", e);
+        addToast("登入失敗或已取消（請確認已允許彈出視窗/停用擋廣告外掛）", "error");
+      })
+      .finally(() => {
+        setIsLoggingIn(false);
       });
   };
 
-  const safeGetValues = async (sheetName) => {
-    const res = await GoogleService.fetchSheetData(sheetName);
-    return res?.values || [];
-  };
-
-  const loadAllData = async () => {
-    // Sheet names are assumed to match these tabs. Adjust if your Google Sheet uses different names.
-    const [projectsV, clientsV, vendorsV, inventoryV, accountsV, transactionsV] = await Promise.all([
-      safeGetValues("projects"),
-      safeGetValues("clients"),
-      safeGetValues("vendors"),
-      safeGetValues("inventory"),
-      safeGetValues("accounts"),
-      safeGetValues("transactions"),
-    ]);
-
-    const calendarItems = await GoogleService.fetchCalendarEvents().catch(() => []);
-
-    return {
-      projects: toRowObjects(projectsV),
-      clients: toRowObjects(clientsV),
-      vendors: toRowObjects(vendorsV),
-      inventory: toRowObjects(inventoryV),
-      finance: {
-        accounts: toRowObjects(accountsV),
-        transactions: toRowObjects(transactionsV),
-      },
-      calendar: Array.isArray(calendarItems) ? calendarItems : [],
-    };
-  };
-
-  const fetchUserInfo = async () => {
-    const token = window.gapi?.client?.getToken?.()?.access_token;
-    if (!token) return null;
-    const r = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!r.ok) return null;
-    const u = await r.json();
-    return {
-      name: u?.name || u?.email || "Google User",
-      email: u?.email || "",
-      photo: u?.picture || "",
-    };
-  };
-
-  (async () => {
-    setLoading(true);
-    try {
-      const { signedIn } = await GoogleService.initClient();
-      if (cancelled) return;
-
-      if (signedIn) {
-        const u = await fetchUserInfo();
-        if (!cancelled) setUser(u);
-
-        const realData = await loadAllData();
-        if (!cancelled) setData({ ...EMPTY_DB, ...realData });
-
-        addToast("登入成功，已載入 Google 雲端資料", "success");
-      } else {
-        setUser(null);
-      }
-    } catch (err) {
-      console.error("[App] initClient error:", err);
-      if (!cancelled) {
-        setUser(null);
-        setData(EMPTY_DB);
-        addToast(err?.message || "初始化失敗", "error");
-      }
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
-  })();
-
-  return () => {
-    cancelled = true;
-  };
-}, []);
-
-
-  const handleLogin = () => {
-  // Redirect-based OAuth (no popup) to avoid browser policy issues
-  setIsLoggingIn(true);
-  try {
-    GoogleService.loginRedirect();
-  } catch (e) {
-    console.error("[App] loginRedirect error:", e);
-    addToast(e?.message || "登入啟動失敗", "error");
-    setIsLoggingIn(false);
-  }
-};
-
-
 
   const handleLogout = async () => {
-  await GoogleService.logout();
-  setUser(null);
-  setData(EMPTY_DB);
-  setActiveProject(null);
-  setActiveTab('schedule');
-  addToast("已登出", 'info');
-};
-
+    await GoogleService.logout();
+    setUser(null);
+    addToast("已登出", 'info');
+  };
 
   const handleUpdateProject = (updatedProject) => {
     const newProjects = data.projects.map(p => p.id === updatedProject.id ? updatedProject : p);
@@ -760,7 +814,10 @@ useEffect(() => {
               )}
             </button>
             <div className="mt-4 pt-4 border-t border-gray-100">
-</div>
+               <button onClick={() => setUser({ name: 'Demo User', email: 'demo@senteng.tw', photo: '' })} className="text-xs text-gray-400 hover:text-gray-600 underline">
+                 先不用，使用體驗模式 (Demo Mode)
+               </button>
+            </div>
             {!CLIENT_ID && <p className="text-xs text-red-400 mt-2 bg-red-50 p-2 rounded flex items-center justify-center gap-1"><AlertCircle size={12}/> 未偵測到 Client ID</p>}
           </div>
        </div>
@@ -803,7 +860,7 @@ useEffect(() => {
         </nav>
         {/* User Profile */}
         <div className="p-4 border-t border-gray-100">
-           <div className="flex-1 overflow-auto p-8">
+           <div className="flex items-center gap-3 px-2">
               <img src={user?.photo || "https://ui-avatars.com/api/?name=User"} alt="User" className="w-8 h-8 rounded-full bg-gray-200" />
               <div className="flex-1 overflow-hidden">
                  <p className="text-sm font-bold text-gray-900 truncate">{user?.name || "Loading..."}</p>
@@ -818,10 +875,7 @@ useEffect(() => {
            <h2 className="text-xl font-bold text-gray-800">{{schedule:'行程管理', projects:'專案管理', finance:'財務管理', clients:'客戶管理', vendors:'廠商管理', inventory:'庫存管理'}[activeTab]}</h2>
            <div className="flex items-center gap-4"><Bell size={20} className="text-gray-400"/><div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">{user?.name?.[0] || "A"}</div></div>
         </header>
-         <div className="flex-1 overflow-auto p-8">
-           {renderContent()}
-           <HealthCheck />
-         </div>
+        <div className="flex-1 overflow-auto p-8">{renderContent()}</div>
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </main>
     </div>
@@ -829,4 +883,3 @@ useEffect(() => {
 };
 
 export default App;
-

@@ -23,10 +23,11 @@ const GoogleService = (() => {
   const cfg = {
     clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-    redirectUri: window.location.origin, // force same-origin to avoid domain mismatch/old env
+    redirectUri:
+      import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin,
     spreadsheetId: import.meta.env.VITE_GOOGLE_SPREADSHEET_ID,
     driveRootFolderId: import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_ID,
-    apiBaseUrl: window.location.origin, // force same-origin to avoid calling old domain // local 可設成 https://senteng-design-system.vercel.app
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "", // local 可設成 https://senteng-design-system.vercel.app
   };
 
   function assertConfig() {
@@ -131,8 +132,8 @@ const GoogleService = (() => {
 
     if (!code) return { exchanged: false };
 
-    const expectedState = localStorage.getItem(STATE_KEY);
-    const verifier = localStorage.getItem(VERIFIER_KEY);
+    const expectedState = sessionStorage.getItem(STATE_KEY);
+    const verifier = sessionStorage.getItem(VERIFIER_KEY);
 
     if (!state || !expectedState || state !== expectedState) {
       throw new Error("OAuth state mismatch");
@@ -149,12 +150,12 @@ const GoogleService = (() => {
 
     // 儲存 access_token，讓 reload 後可以恢復登入狀態
     if (token?.access_token) {
-      localStorage.setItem(TOKEN_KEY, token.access_token);
+      sessionStorage.setItem(TOKEN_KEY, token.access_token);
     }
 
     // 清理一次性資料
-    localStorage.removeItem(STATE_KEY);
-    localStorage.removeItem(VERIFIER_KEY);
+    sessionStorage.removeItem(STATE_KEY);
+    sessionStorage.removeItem(VERIFIER_KEY);
     stripAuthParamsFromUrl();
 
     return { exchanged: true, token };
@@ -170,7 +171,7 @@ const GoogleService = (() => {
     });
 
     // 如果有 token，就設回去
-    const accessToken = localStorage.getItem(TOKEN_KEY);
+    const accessToken = sessionStorage.getItem(TOKEN_KEY);
     if (accessToken) {
       window.gapi.client.setToken({ access_token: accessToken });
     }
@@ -199,17 +200,17 @@ const GoogleService = (() => {
     const { verifier, challenge } = await buildPkce();
     const state = randomString(32);
 
-    localStorage.setItem(VERIFIER_KEY, verifier);
-    localStorage.setItem(STATE_KEY, state);
+    sessionStorage.setItem(VERIFIER_KEY, verifier);
+    sessionStorage.setItem(STATE_KEY, state);
 
     const url = getAuthUrl({ codeChallenge: challenge, state });
     window.location.assign(url);
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(STATE_KEY);
-    localStorage.removeItem(VERIFIER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(STATE_KEY);
+    sessionStorage.removeItem(VERIFIER_KEY);
 
     if (window.gapi?.client) {
       window.gapi.client.setToken(null);
@@ -218,11 +219,19 @@ const GoogleService = (() => {
 
   // ====== 你原本的 API wrapper（保留介面；內部用 gapi） ======
 
+  function _normalizeRange(sheetName, defaultA1 = "A1:Z") {
+    if (!sheetName) throw new Error("Missing sheetName");
+    // If caller already passed A1 notation like "clients!A1:Z" keep it.
+    if (sheetName.includes("!")) return sheetName;
+    // Default: read a reasonable rectangular range so Sheets API won't 404.
+    return `${sheetName}!${defaultA1}`;
+  }
+
   async function fetchSheetData(sheetName) {
     if (!cfg.spreadsheetId) throw new Error("Missing VITE_GOOGLE_SPREADSHEET_ID");
     const res = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: cfg.spreadsheetId,
-      range: sheetName,
+      range: _normalizeRange(sheetName, "A1:Z"),
     });
     return res.result;
   }
@@ -231,7 +240,7 @@ const GoogleService = (() => {
     if (!cfg.spreadsheetId) throw new Error("Missing VITE_GOOGLE_SPREADSHEET_ID");
     const res = await window.gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: cfg.spreadsheetId,
-      range: sheetName,
+      range: _normalizeRange(sheetName, "A1"),
       valueInputOption: "RAW",
       resource: { values: values2D },
     });
@@ -272,6 +281,8 @@ const GoogleService = (() => {
 
   return {
     initClient,
+    // Backward-compatible alias (older App.jsx may call GoogleService.login())
+    login: loginRedirect,
     loginRedirect,
     logout,
     fetchSheetData,
