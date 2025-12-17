@@ -2,12 +2,17 @@
 import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
 
-export const InputField = ({ label, type = "text", placeholder, value, onChange, options }) => (
+export const InputField = ({ label, type = "text", placeholder, value, onChange, options, children }) => (
     <div className="mb-4">
         <label className="block text-sm font-medium text-gray-600 mb-1.5 ml-1">{label}</label>
         {type === "select" ? (
             <select value={value} onChange={onChange} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-morandi-blue-500 bg-white">
-                <option value="" disabled>請選擇</option>{options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {children || (
+                    <>
+                        <option value="" disabled>請選擇</option>
+                        {options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </>
+                )}
             </select>
         ) : type === "textarea" ? (
             <textarea value={value} onChange={onChange} placeholder={placeholder} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-morandi-blue-500 min-h-[100px] resize-none" />
