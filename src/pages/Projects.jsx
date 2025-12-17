@@ -151,10 +151,13 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         const projectTx = allTransactions.filter(t => t.projectId === activeProject.id);
 
         return (
-            <div className="space-y-6 animate-fade-in pb-10">
+            <div className="space-y-4 sm:space-y-6 animate-fade-in">
+                <button onClick={() => setActiveProject(null)} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 mb-4">
+                    <ChevronLeft size={16} /> 返回列表
+                </button>
+
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setActiveProject(null)} className="p-2 hover:bg-white rounded-full transition-colors shadow-sm text-gray-500"><ChevronLeft size={24} /></button>
                         <div>
                             {isEditing ? (
                                 <input
@@ -271,25 +274,30 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     }
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-morandi-text-primary">專案管理</h1>
-                <button onClick={() => setIsAddModalOpen(true)} className="bg-morandi-text-accent text-white px-4 py-2 rounded-xl text-sm transition-all hover:bg-gray-700">+ 新增專案</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-auto">
-                {listWidgets.map((w, i) => (
-                    <WidgetWrapper key={w.id} widget={w} onResize={handleResize(listWidgets, setListWidgets)}>
-                        {w.type === 'project-stats' && <WidgetProjectStats data={data} size={w.size} />}
-                        {w.type === 'project-list' && <WidgetProjectList data={data} size={w.size} onSelectProject={setActiveProject} onAdd={() => setIsAddModalOpen(true)} />}
-                    </WidgetWrapper>
-                ))}
+        <>
+            {/* Projects List View */}
+            <div className="space-y-4 sm:space-y-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-morandi-text-primary">專案管理</h2>
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-morandi-text-accent text-white rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
+                        <Plus size={16} /> <span className="hidden sm:inline">新增專案</span><span className="sm:hidden">新增</span>
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-auto">
+                    {listWidgets.map((w, i) => (
+                        <WidgetWrapper key={w.id} widget={w} onResize={handleResize(listWidgets, setListWidgets)}>
+                            {w.type === 'project-stats' && <WidgetProjectStats data={data} size={w.size} />}
+                            {w.type === 'project-list' && <WidgetProjectList data={data} size={w.size} onSelectProject={setActiveProject} onAdd={() => setIsAddModalOpen(true)} />}
+                        </WidgetWrapper>
+                    ))}
+                </div>
             </div>
             <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="建立新專案" onConfirm={() => setIsAddModalOpen(false)}>
                 <InputField label="專案名稱" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} />
                 <InputField label="預算" value={newProject.budget} onChange={e => setNewProject({ ...newProject, budget: e.target.value })} />
                 <LocationField label="專案地點" value={newProject.location || ''} onChange={e => setNewProject({ ...newProject, location: e.target.value })} placeholder="例：台北市信義區松智路1號" />
             </Modal>
-        </div>
+        </div >
     );
 };
 

@@ -173,7 +173,7 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
                     <button onClick={() => setNewTx({ ...newTx, type: '收入' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '收入' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}>收入</button>
                     <button onClick={() => setNewTx({ ...newTx, type: '支出' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '支出' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}>支出</button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="金額" type="number" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} placeholder="請輸入金額" />
                     <InputField label="日期" type="date" value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                 </div>

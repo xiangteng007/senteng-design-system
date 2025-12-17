@@ -24,16 +24,16 @@ const Dashboard = ({ events, finance, projects, clients }) => {
     const handleDragEnd = () => { };
 
     return (
-        <div className="space-y-6 animate-fade-in relative z-0">
-            <div className="mb-8 flex justify-between items-end">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in relative z-0">
+            <div className="mb-6 sm:mb-8 flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-morandi-text-primary">早安，{userName}</h1>
-                    <p className="text-morandi-text-secondary">今天是 {dateStr}</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-morandi-text-primary">早安，{userName}</h1>
+                    <p className="text-sm sm:text-base text-morandi-text-secondary">今天是 {dateStr}</p>
                 </div>
                 {/* Optional: Add a quick action button here if needed */}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-auto">
                 {widgets.map((w, i) => (
                     <WidgetWrapper key={w.id} widget={w} onResize={handleResize}
                         onDragStart={(e) => handleDragStart(e, i)}
