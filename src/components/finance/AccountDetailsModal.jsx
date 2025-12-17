@@ -1,14 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import { X, TrendingUp, TrendingDown, Calendar, Filter, Download } from 'lucide-react';
 
-export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions }) => {
-    const [filterType, setFilterType] = useState('all'); // all, 收入, 支出
+export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions = [] }) => {
+    const [filterType, setFilterType] = useState('all');
     const [filterMonth, setFilterMonth] = useState('all');
 
-    if (!isOpen || !account) return null;
+    // Extract primitive values FIRST to avoid object recreation
+    const accountId = account?.id || '';
+    const accountName = account?.name || '';
+    const accountBank = account?.bank || '';
+    const accountNumber = account?.number || '';
+    const accountBalance = account?.balance || 0;
 
-    // Filter transactions for this account
-    const accountTransactions = allTransactions.filter(tx => tx.accountId === account.id);
+    // Safety check for allTransactions
+    const safeTransactions = Array.isArray(allTransactions) ? allTransactions : [];
+    const safeAccount = account || { id: accountId, name: accountName, bank: accountBank, number: accountNumber, balance: accountBalance };
+
+    // Filter transactions for this account (must be called before any conditional return)
+    const accountTransactions = useMemo(() => {
+        if (!accountId) return [];
+        return safeTransactions.filter(tx => tx.accountId === accountId);
+    }, [safeTransactions, accountId]);
 
     // Apply filters
     const filteredTransactions = useMemo(() => {
@@ -19,7 +31,7 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
         }
 
         if (filterMonth !== 'all') {
-            filtered = filtered.filter(tx => tx.date.startsWith(filterMonth));
+            filtered = filtered.filter(tx => tx.date && tx.date.startsWith(filterMonth));
         }
 
         return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -29,10 +41,10 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
     const stats = useMemo(() => {
         const income = accountTransactions
             .filter(tx => tx.type === '收入')
-            .reduce((sum, tx) => sum + tx.amount, 0);
+            .reduce((sum, tx) => sum + (tx.amount || 0), 0);
         const expense = accountTransactions
             .filter(tx => tx.type === '支出')
-            .reduce((sum, tx) => sum + tx.amount, 0);
+            .reduce((sum, tx) => sum + (tx.amount || 0), 0);
         const net = income - expense;
 
         return { income, expense, net, count: accountTransactions.length };
@@ -44,17 +56,26 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
         return Array.from(months).sort().reverse();
     }, [accountTransactions]);
 
+    // DEBUG: Check what we're receiving
+    console.log('AccountDetailsModal render:', { isOpen, account, accountId, transactionCount: safeTransactions.length });
+
+    // NOW we can do conditional rendering - AFTER all hooks
+    if (!isOpen || !account) {
+        console.log('Modal not rendering because:', { isOpen, hasAccount: !!account });
+        return null;
+    }
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-slide-up">
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 border-b border-gray-100">
                     <div>
-                        <h3 className="text-2xl font-bold text-gray-800">{account.name}</h3>
+                        <h3 className="text-2xl font-bold text-gray-800">{accountName}</h3>
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                            <span>{account.bank}</span>
+                            <span>{accountBank}</span>
                             <span>•</span>
-                            <span className="font-mono">{account.number}</span>
+                            <span className="font-mono">{accountNumber}</span>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -66,7 +87,7 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
                 <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50">
                     <div className="bg-white rounded-xl p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1">當前餘額</div>
-                        <div className="text-2xl font-bold text-gray-800">${account.balance.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-gray-800">${accountBalance.toLocaleString()}</div>
                     </div>
                     <div className="bg-white rounded-xl p-4 shadow-sm">
                         <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
@@ -102,8 +123,8 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
                         <button
                             onClick={() => setFilterType('all')}
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filterType === 'all'
-                                    ? 'bg-morandi-blue-500 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-morandi-blue-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             全部
@@ -111,8 +132,8 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
                         <button
                             onClick={() => setFilterType('收入')}
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filterType === '收入'
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             收入
@@ -120,8 +141,8 @@ export const AccountDetailsModal = ({ isOpen, onClose, account, allTransactions 
                         <button
                             onClick={() => setFilterType('支出')}
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filterType === '支出'
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             支出
