@@ -489,7 +489,7 @@ export const InvoiceHelper = ({ addToast }) => {
                     {/* 快速參考 */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                         <h4 className="font-bold text-gray-800 mb-3">中文大寫數字對照</h4>
-                        <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                        <div className="grid grid-cols-5 gap-1 sm:gap-2 text-center text-xs sm:text-sm">
                             {['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'].map((char, i) => (
                                 <div key={i} className="bg-gray-50 rounded-lg py-2">
                                     <div className="text-gray-400 text-xs">{i}</div>

@@ -360,7 +360,7 @@ const Inventory = ({ data, addToast }) => {
             </div>
 
             {/* 統計卡片 */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard
                     icon={Box}
                     label="總品項數"

@@ -227,7 +227,7 @@ export const CostEstimator = ({ addToast }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                             {categories.map(category => {
                                 const Icon = CATEGORY_ICONS[category] || Package;
                                 return (
@@ -235,8 +235,8 @@ export const CostEstimator = ({ addToast }) => {
                                         key={category}
                                         onClick={() => setSelectedCategory(category)}
                                         className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${selectedCategory === category
-                                                ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <Icon size={20} />

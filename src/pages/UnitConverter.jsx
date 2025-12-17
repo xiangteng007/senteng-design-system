@@ -207,8 +207,8 @@ export const UnitConverter = ({ addToast }) => {
                             <button
                                 onClick={() => handleTypeChange('area')}
                                 className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${conversionType === 'area'
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <Square size={20} />
@@ -217,8 +217,8 @@ export const UnitConverter = ({ addToast }) => {
                             <button
                                 onClick={() => handleTypeChange('length')}
                                 className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${conversionType === 'length'
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <Ruler size={20} />
@@ -227,8 +227,8 @@ export const UnitConverter = ({ addToast }) => {
                             <button
                                 onClick={() => handleTypeChange('volume')}
                                 className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${conversionType === 'volume'
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 <Box size={20} />
@@ -243,7 +243,7 @@ export const UnitConverter = ({ addToast }) => {
                             <Grid3X3 size={16} className="inline mr-1" />
                             尺寸計算（選填）
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs text-gray-500 mb-1">長度</label>
                                 <div className="flex gap-2">

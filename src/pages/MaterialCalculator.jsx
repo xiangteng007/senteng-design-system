@@ -236,8 +236,8 @@ const StructureCalculator = () => {
                         key={item.id}
                         onClick={() => setCalcType(item.id)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${calcType === item.id
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-gray-100 hover:bg-gray-200'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-100 hover:bg-gray-200'
                             }`}
                     >
                         {item.label}
@@ -252,7 +252,7 @@ const StructureCalculator = () => {
                         <Info size={16} />
                         公式: 體積(m³) = 長 × 寬 × 高
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <InputField label="長度" value={concreteL} onChange={setConcreteL} unit="m" placeholder="0" />
                         <InputField label="寬度" value={concreteW} onChange={setConcreteW} unit="m" placeholder="0" />
                         <InputField label="高度/厚度" value={concreteH} onChange={setConcreteH} unit="m" placeholder="0" />
@@ -280,7 +280,7 @@ const StructureCalculator = () => {
                         <Info size={16} />
                         公式: 重量(kg) = 0.00617 × d² × 長度 或 單位重量 × 長度 × 數量
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <SelectField
                             label="鋼筋規格"
                             value={rebarSpec}
@@ -553,7 +553,7 @@ const TileCalculator = () => {
                         <Info size={16} />
                         公式: 每坪片數 = 32400 ÷ (長cm × 寬cm)
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <InputField label="施作面積" value={tileArea} onChange={setTileArea} unit={tileUnit === 'ping' ? '坪' : 'm²'} placeholder="0" />
                         <SelectField
                             label="面積單位"
@@ -883,8 +883,8 @@ export const MaterialCalculator = ({ addToast }) => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all ${activeTab === tab.id
-                                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                     }`}
                             >
                                 <Icon size={18} />
