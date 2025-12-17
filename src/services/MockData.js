@@ -89,16 +89,47 @@ export const MOCK_DB = {
     ],
     finance: {
         accounts: [
-            { id: "a-1", name: "玉山營運", bank: "玉山銀行", number: "808-1234-5678-9012", balance: 2360, note: "主要收支帳戶" },
-            { id: "a-2", name: "公司零用金", bank: "現金箱", number: "-", balance: -2, note: "日常雜支" },
-            { id: "a-3", name: "台新薪轉", bank: "台新銀行", number: "987-654-321", balance: 0, note: "薪轉專用" }
+            { id: "a-1", name: "公司營運帳戶", bank: "台灣銀行", number: "001-****-1234", balance: 450000, type: "營運", color: "#4F46E5" },
+            { id: "a-2", name: "專案專用帳戶", bank: "國泰世華", number: "013-****-5678", balance: 280000, type: "專案", color: "#059669" },
+            { id: "a-3", name: "零用金", bank: "現金", number: "-", balance: 35000, type: "現金", color: "#DC2626" },
+            { id: "a-4", name: "材料採購帳戶", bank: "中國信託", number: "822-****-9012", balance: 125000, type: "採購", color: "#7C3AED" },
+            { id: "a-5", name: "員工薪資帳戶", bank: "玉山銀行", number: "808-****-3456", balance: 520000, type: "薪資", color: "#F59E0B" }
         ],
         transactions: [
-            { id: "t-1", date: "2025-12-05", type: "收入", amount: 800, accountId: "a-1", projectId: "p-1", desc: "信義林公館 - 第2期工程款", synced: true },
-            { id: "t-2", date: "2025-12-08", type: "支出", amount: 30, accountId: "a-1", projectId: "p-1", desc: "水電建材料件", synced: false },
-            { id: "t-3", date: "2025-12-10", type: "支出", amount: 2, accountId: "a-2", projectId: "p-2", desc: "辦公室文具", synced: false },
-            { id: "t-4", date: "2025-12-11", type: "支出", amount: 15, accountId: "a-1", projectId: "p-3", desc: "油漆補料", synced: true },
-            { id: "t-5", date: "2025-12-25", type: "收入", amount: 300, accountId: "a-3", projectId: "p-2", desc: "設計費首款 (預計)", synced: false }
+            // 公司營運帳戶 (a-1) 的交易
+            { id: "t-1", accountId: "a-1", type: "收入", amount: 150000, date: "2025-12-01", desc: "客戶訂金 - 林公館", category: "專案收款", projectId: "p-1" },
+            { id: "t-2", accountId: "a-1", type: "支出", amount: 25000, date: "2025-12-03", desc: "辦公室租金", category: "固定成本", projectId: null },
+            { id: "t-3", accountId: "a-1", type: "支出", amount: 15000, date: "2025-12-05", desc: "水電瓦斯費", category: "固定成本", projectId: null },
+            { id: "t-4", accountId: "a-1", type: "收入", amount: 200000, date: "2025-12-10", desc: "專案款項 - 南港辦公室", category: "專案收款", projectId: "p-3" },
+            { id: "t-5", accountId: "a-1", type: "支出", amount: 8000, date: "2025-12-12", desc: "網路通訊費", category: "固定成本", projectId: null },
+
+            // 專案專用帳戶 (a-2) 的交易
+            { id: "t-6", accountId: "a-2", type: "收入", amount: 180000, date: "2025-12-02", desc: "專案尾款 - 大安公園", category: "專案收款", projectId: "p-2" },
+            { id: "t-7", accountId: "a-2", type: "支出", amount: 45000, date: "2025-12-06", desc: "木工材料款", category: "材料費", projectId: "p-1" },
+            { id: "t-8", accountId: "a-2", type: "支出", amount: 35000, date: "2025-12-08", desc: "油漆工程款", category: "工程款", projectId: "p-3" },
+            { id: "t-9", accountId: "a-2", type: "收入", amount: 120000, date: "2025-12-11", desc: "客戶追加款 - 林公館", category: "專案收款", projectId: "p-1" },
+            { id: "t-10", accountId: "a-2", type: "支出", amount: 28000, date: "2025-12-14", desc: "水電配線費用", category: "工程款", projectId: "p-1" },
+
+            // 零用金 (a-3) 的交易
+            { id: "t-11", accountId: "a-3", type: "支出", amount: 1200, date: "2025-12-04", desc: "員工餐費", category: "雜支", projectId: null },
+            { id: "t-12", accountId: "a-3", type: "支出", amount: 800, date: "2025-12-07", desc: "辦公用品", category: "雜支", projectId: null },
+            { id: "t-13", accountId: "a-3", type: "收入", amount: 5000, date: "2025-12-09", desc: "零用金補充", category: "內部轉帳", projectId: null },
+            { id: "t-14", accountId: "a-3", type: "支出", amount: 2500, date: "2025-12-13", desc: "交通油資", category: "雜支", projectId: null },
+            { id: "t-15", accountId: "a-3", type: "支出", amount: 3200, date: "2025-12-15", desc: "工地茶水", category: "雜支", projectId: "p-1" },
+
+            // 材料採購帳戶 (a-4) 的交易
+            { id: "t-16", accountId: "a-4", type: "支出", amount: 68000, date: "2025-12-01", desc: "Panasonic開關批量採購", category: "材料費", projectId: null },
+            { id: "t-17", accountId: "a-4", type: "支出", amount: 42000, date: "2025-12-05", desc: "得利乳膠漆", category: "材料費", projectId: "p-3" },
+            { id: "t-18", accountId: "a-4", type: "支出", amount: 55000, date: "2025-12-10", desc: "木工板材", category: "材料費", projectId: "p-1" },
+            { id: "t-19", accountId: "a-4", type: "收入", amount: 15000, date: "2025-12-12", desc: "退貨退款", category: "其他", projectId: null },
+            { id: "t-20", accountId: "a-4", type: "支出", amount: 38000, date: "2025-12-16", desc: "T5層板燈批購", category: "材料費", projectId: null },
+
+            // 員工薪資帳戶 (a-5) 的交易
+            { id: "t-21", accountId: "a-5", type: "收入", amount: 600000, date: "2025-12-01", desc: "薪資轉入", category: "內部轉帳", projectId: null },
+            { id: "t-22", accountId: "a-5", type: "支出", amount: 80000, date: "2025-12-05", desc: "員工薪資 - Alex", category: "薪資", projectId: null },
+            { id: "t-23", accountId: "a-5", type: "支出", amount: 75000, date: "2025-12-05", desc: "員工薪資 - Linda", category: "薪資", projectId: null },
+            { id: "t-24", accountId: "a-5", type: "支出", amount: 65000, date: "2025-12-05", desc: "員工薪資 - Mike", category: "薪資", projectId: null },
+            { id: "t-25", accountId: "a-5", type: "支出", amount: 55000, date: "2025-12-05", desc: "員工薪資 - Jenny", category: "薪資", projectId: null }
         ]
     },
     vendors: [

@@ -1,7 +1,8 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetFinanceAccounts, WidgetFinanceTrend, WidgetFinanceTransactions } from '../components/widgets/FinanceWidgets';
+import { AccountDetailsModal } from '../components/finance/AccountDetailsModal';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
@@ -9,6 +10,17 @@ import { Plus } from 'lucide-react';
 
 const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
     const [accounts, setAccounts] = useState(data.accounts || []);
+    const accountsRef = useRef(accounts);
+
+    // Sync accounts when data.accounts changes (from API/Sheet)
+    useEffect(() => {
+        setAccounts(data.accounts || []);
+    }, [data.accounts]);
+
+    // Keep ref in sync with state for drag-drop
+    useEffect(() => {
+        accountsRef.current = accounts;
+    }, [accounts]);
     const [widgets, setWidgets] = useState([
         { id: 'wf-acc', type: 'finance-acc', title: '資金帳戶', size: 'L' },
         { id: 'wf-trend', type: 'finance-trend', title: '收支趨勢', size: 'M' },
@@ -23,6 +35,14 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
     const [isAccModalOpen, setIsAccModalOpen] = useState(false);
     const [editingAcc, setEditingAcc] = useState(null);
     const [newAcc, setNewAcc] = useState({ name: "", bank: "", number: "", balance: 0 });
+
+    // Delete Account State
+    const [isDeleteAccModalOpen, setIsDeleteAccModalOpen] = useState(false);
+    const [deletingAcc, setDeletingAcc] = useState(null);
+
+    // Account Details State
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedAccount, setSelectedAccount] = useState(null);
 
     // Drag Refs
     const dragItem = useRef(null);
@@ -74,11 +94,39 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
         setEditingAcc(null);
     };
 
+    // Delete Account Handler
+    const handleDeleteAccount = (acc) => {
+        setDeletingAcc(acc);
+        setIsDeleteAccModalOpen(true);
+    };
+
+    const confirmDeleteAccount = () => {
+        const updatedAccounts = accounts.filter(a => a.id !== deletingAcc.id);
+        setAccounts(updatedAccounts);
+        onUpdateAccounts(updatedAccounts);
+        addToast(`帳戶「${deletingAcc.name}」已刪除`, 'success');
+        setIsDeleteAccModalOpen(false);
+        setDeletingAcc(null);
+    };
+
+    // Account Details Handler
+    const handleViewDetails = (acc) => {
+        setSelectedAccount(acc);
+        setIsDetailsModalOpen(true);
+    };
+
     const handleConfirmTx = async () => {
-        onAddTx(newTx); // Handles App State update and Toast inside App.jsx
+        // Validation
+        if (!newTx.accountId || !newTx.amount || parseFloat(newTx.amount) <= 0) {
+            addToast('請填寫完整資料並確認金額大於0', 'error');
+            return;
+        }
+
+        const txWithNumber = { ...newTx, amount: parseFloat(newTx.amount) };
+        onAddTx(txWithNumber); // Handles App State update and Toast inside App.jsx
         setIsTxModalOpen(false);
         setNewTx({ type: "支出", amount: "", date: "", desc: "", accountId: "" });
-        // await GoogleService.syncToSheet('transactions', newTx); // TODO: Implement sync
+        // await GoogleService.syncToSheet('transactions', txWithNumber); // TODO: Implement sync
     };
 
     const renderWidget = (w) => {
@@ -93,6 +141,8 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
                             data={accounts}
                             size={w.size}
                             onEdit={openEditAcc}
+                            onDelete={handleDeleteAccount}
+                            onViewDetails={handleViewDetails}
                             onDragStartAccount={handleDragStartAccount}
                             onDragOverAccount={handleDragOverAccount}
                             onDragEndAccount={handleDragEndAccount}
@@ -124,11 +174,16 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
                     <button onClick={() => setNewTx({ ...newTx, type: '支出' })} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${newTx.type === '支出' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}>支出</button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <InputField label="金額" type="number" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} />
+                    <InputField label="金額" type="number" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} placeholder="請輸入金額" />
                     <InputField label="日期" type="date" value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                 </div>
                 <InputField label="摘要" value={newTx.desc} onChange={e => setNewTx({ ...newTx, desc: e.target.value })} placeholder="例：油漆補料" />
-                <InputField label="帳戶" type="select" value={newTx.accountId} onChange={e => setNewTx({ ...newTx, accountId: e.target.value })} options={accounts.map(a => a.name)} />
+                <InputField label="帳戶" type="select" value={newTx.accountId} onChange={e => setNewTx({ ...newTx, accountId: e.target.value })}>
+                    <option value="" disabled>請選擇帳戶</option>
+                    {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    ))}
+                </InputField>
             </Modal>
 
             {/* Account Modal */}
@@ -140,6 +195,35 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts }) => {
                 </div>
                 <InputField label="初始餘額" type="number" value={newAcc.balance} onChange={e => setNewAcc({ ...newAcc, balance: Number(e.target.value) })} />
             </Modal>
+
+            {/* Delete Account Modal */}
+            <Modal
+                isOpen={isDeleteAccModalOpen}
+                onClose={() => setIsDeleteAccModalOpen(false)}
+                title="確認刪除帳戶"
+                onConfirm={confirmDeleteAccount}
+                confirmText="確定刪除"
+            >
+                <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                        <p className="text-red-800 font-medium">⚠️ 警告：此操作無法復原</p>
+                    </div>
+                    <p className="text-gray-700">
+                        您確定要刪除帳戶「<span className="font-bold">{deletingAcc?.name}</span>」嗎？
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        刪除後，該帳戶的所有交易記錄仍會保留，但帳戶資訊將無法恢復。
+                    </p>
+                </div>
+            </Modal>
+
+            {/* Account Details Modal */}
+            <AccountDetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)}
+                account={selectedAccount}
+                allTransactions={data.transactions || []}
+            />
         </div>
     );
 };

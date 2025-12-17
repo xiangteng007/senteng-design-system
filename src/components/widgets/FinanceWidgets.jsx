@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Wallet, ChevronDown, ChevronUp, Plus, GripVertical } from 'lucide-react';
 import { TrendChart } from './TrendChart'; // Helper needed
 
-const AccountCard = ({ account, onEdit, onDragStart, onDragOver, onDragEnd }) => {
+const AccountCard = ({ account, onEdit, onViewDetails, onDragStart, onDragOver, onDragEnd }) => {
     const [expanded, setExpanded] = useState(false);
 
     // Dynamic border color based on bank/custom
@@ -56,7 +56,7 @@ const AccountCard = ({ account, onEdit, onDragStart, onDragOver, onDragEnd }) =>
                         <button onClick={(e) => { e.stopPropagation(); onEdit(account); }} className="px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg hover:border-morandi-blue-300 text-gray-600 transition-colors">
                             編輯帳戶
                         </button>
-                        <button className="px-3 py-1.5 text-xs bg-morandi-text-accent text-white rounded-lg hover:bg-gray-800 transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); onViewDetails(account); }} className="px-3 py-1.5 text-xs bg-morandi-text-accent text-white rounded-lg hover:bg-gray-800 transition-colors">
                             查看明細
                         </button>
                     </div>
@@ -66,7 +66,7 @@ const AccountCard = ({ account, onEdit, onDragStart, onDragOver, onDragEnd }) =>
     );
 };
 
-export const WidgetFinanceAccounts = ({ data, size, onEdit, ...dragProps }) => {
+export const WidgetFinanceAccounts = ({ data, size, onEdit, onViewDetails, ...dragProps }) => {
     const accounts = data || [];
     const total = accounts.reduce((acc, c) => acc + c.balance, 0);
 
@@ -88,6 +88,7 @@ export const WidgetFinanceAccounts = ({ data, size, onEdit, ...dragProps }) => {
                         key={acc.id}
                         account={acc}
                         onEdit={onEdit}
+                        onViewDetails={onViewDetails}
                         onDragStart={(e) => dragProps.onDragStartAccount(e, index)}
                         onDragOver={(e) => dragProps.onDragOverAccount(e, index)}
                         onDragEnd={dragProps.onDragEndAccount}
