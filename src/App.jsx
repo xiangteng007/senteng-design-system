@@ -16,6 +16,7 @@ import { MaterialGallery } from './pages/MaterialGallery';
 import { InvoiceHelper } from './pages/InvoiceHelper';
 import { UnitConverter } from './pages/UnitConverter';
 import { CostEstimator } from './pages/CostEstimator';
+import { MaterialCalculator } from './pages/MaterialCalculator';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -88,6 +89,7 @@ const App = () => {
       case 'invoice': return <InvoiceHelper addToast={addToast} />;
       case 'unit': return <UnitConverter addToast={addToast} />;
       case 'cost': return <CostEstimator addToast={addToast} />;
+      case 'calc': return <MaterialCalculator addToast={addToast} />;
       default: return <Dashboard events={data.calendar} />;
     }
   };
