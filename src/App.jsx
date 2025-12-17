@@ -13,6 +13,7 @@ import Vendors from './pages/Vendors';
 import Finance from './pages/Finance';
 import Inventory from './pages/Inventory';
 import { MaterialGallery } from './pages/MaterialGallery';
+import { InvoiceHelper } from './pages/InvoiceHelper';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -82,6 +83,7 @@ const App = () => {
       case 'vendors': return <Vendors data={data.vendors} loading={loading} addToast={addToast} />;
       case 'inventory': return <Inventory data={data.inventory} loading={loading} addToast={addToast} />;
       case 'materials': return <MaterialGallery addToast={addToast} />;
+      case 'invoice': return <InvoiceHelper addToast={addToast} />;
       default: return <Dashboard events={data.calendar} />;
     }
   };

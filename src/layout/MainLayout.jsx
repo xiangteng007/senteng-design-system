@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
 
@@ -34,6 +34,7 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
         { id: 'vendors', icon: HardHat, label: '廠商管理' },
         { id: 'inventory', icon: Package, label: '庫存管理' },
         { id: 'materials', icon: ImageIcon, label: '材質圖庫' },
+        { id: 'invoice', icon: FileText, label: '發票小幫手' },
     ];
 
     // 檢查是否有即將到來的行程
