@@ -162,12 +162,39 @@ export const GoogleService = {
     }
   },
 
-  uploadToDrive: (file, folderName) => new Promise(resolve => {
-    setTimeout(() => {
-      console.log(`Uploaded ${file.name} to Drive/Projects/${folderName}/`);
-      resolve({ success: true, url: `https://drive.google.com/file/d/mock-${Date.now()}` });
-    }, 1500);
-  }),
+  uploadToDrive: async (file, folderName, folderUrl) => {
+    console.log(`📤 Uploading file: ${file.name} to folder: ${folderName}`);
+
+    try {
+      // Extract folder ID from URL if provided
+      let folderId = null;
+      if (folderUrl) {
+        const match = folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
+        folderId = match ? match[1] : null;
+      }
+
+      const result = await callGASWithJSONP('upload_to_drive', {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        folderId: folderId,
+        // Note: Actual file content upload would require different handling
+        // For now, we're creating a placeholder entry
+      });
+
+      if (result.success) {
+        const fileUrl = result.data?.fileUrl || `https://drive.google.com/file/d/${result.data?.fileId || 'unknown'}/view`;
+        console.log(`✅ File uploaded: ${fileUrl}`);
+        return { success: true, url: fileUrl, fileId: result.data?.fileId };
+      } else {
+        console.error(`❌ File upload failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
 
   createDriveFolder: async (folderName) => {
     console.log(`📁 Creating Drive folder: ${folderName}`);

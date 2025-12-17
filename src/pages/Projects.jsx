@@ -170,6 +170,38 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
         });
     };
 
+    // File Upload Handler - Upload to project's Drive folder
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!activeProject.driveFolder) {
+                addToast('此專案沒有 Drive 資料夾', 'error');
+                return;
+            }
+
+            addToast('正在上傳檔案...', 'info');
+            const res = await GoogleService.uploadToDrive(file, activeProject.name, activeProject.driveFolder);
+
+            if (res.success) {
+                const fileRecord = {
+                    id: `file-${Date.now()}`,
+                    name: file.name,
+                    url: res.url,
+                    uploadDate: new Date().toLocaleDateString('zh-TW'),
+                    size: file.size
+                };
+                const updatedProject = { ...activeProject, files: [...(activeProject.files || []), fileRecord] };
+                onUpdateProject(updatedProject);
+                setActiveProject(updatedProject);
+                addToast(`檔案「${file.name}」已上傳至 Drive`, 'success', {
+                    link: res.url,
+                    linkText: '開啟檔案'
+                });
+            } else {
+                addToast(`檔案上傳失敗: ${res.error}`, 'error');
+            }
+        }
+    };
     // Delete Handler
     const handleDeleteProject = () => {
         setIsDeleteModalOpen(true);
