@@ -139,9 +139,18 @@ export const MOCK_DB = {
         { id: "v-4", name: "美居家飾", category: "建材供應", tradeType: "軟裝", contactPerson: "Amy", phone: "02-2345-6789", address: "台北市內湖區...", status: "長期合作", rating: 4.8, lastProject: "大安森林公園", tags: ["品項多"] }
     ],
     inventory: [
-        { id: "i-1", name: "Panasonic 開關", spec: "PN-001", quantity: 50, unit: "組", safeStock: 10, location: "A-01", restockDate: "2025-12-20", status: "充足" },
-        { id: "i-2", name: "得利乳膠漆 (白)", spec: "PT-W01", quantity: 5, unit: "桶", safeStock: 10, location: "B-02", restockDate: "2025-12-15", status: "庫存偏低" },
-        { id: "i-3", name: "T5 層板燈", spec: "LGT-T5", quantity: 100, unit: "支", safeStock: 20, location: "A-03", restockDate: "", status: "充足" }
+        { id: "i-1", name: "Panasonic 開關", spec: "PN-001", category: "電氣", quantity: 50, unit: "組", safeStock: 10, location: "A-01", status: "充足" },
+        { id: "i-2", name: "得利乳膠漆 (白)", spec: "PT-W01", category: "油漆", quantity: 5, unit: "桶", safeStock: 10, location: "B-02", status: "庫存偏低" },
+        { id: "i-3", name: "T5 層板燈", spec: "LGT-T5", category: "燈具", quantity: 100, unit: "支", safeStock: 20, location: "A-03", status: "充足" },
+        { id: "i-4", name: "木芯板 4x8", spec: "WD-48", category: "木料", quantity: 25, unit: "片", safeStock: 10, location: "C-01", status: "充足" },
+        { id: "i-5", name: "不鏽鋼門把", spec: "HW-SS01", category: "五金", quantity: 30, unit: "組", safeStock: 15, location: "D-02", status: "充足" },
+        { id: "i-6", name: "得利乳膠漆 (灰)", spec: "PT-G01", category: "油漆", quantity: 0, unit: "桶", safeStock: 5, location: "B-02", status: "缺貨" },
+        { id: "i-7", name: "LED 崁燈 6W", spec: "LGT-LED6", category: "燈具", quantity: 80, unit: "個", safeStock: 30, location: "A-04", status: "充足" },
+        { id: "i-8", name: "電線 2.0mm", spec: "EL-20", category: "電氣", quantity: 500, unit: "米", safeStock: 100, location: "E-01", status: "充足" },
+        { id: "i-9", name: "PVC 管 3/4", spec: "PL-34", category: "五金", quantity: 40, unit: "支", safeStock: 20, location: "D-03", status: "充足" },
+        { id: "i-10", name: "夾板 18mm", spec: "WD-18", category: "木料", quantity: 8, unit: "片", safeStock: 15, location: "C-02", status: "庫存偏低" },
+        { id: "i-11", name: "虹牌調合漆", spec: "PT-MX01", category: "油漆", quantity: 12, unit: "加侖", safeStock: 10, location: "B-03", status: "充足" },
+        { id: "i-12", name: "插座面板", spec: "EL-SOC01", category: "電氣", quantity: 3, unit: "組", safeStock: 20, location: "A-02", status: "庫存偏低" }
     ],
     calendar: [
         // 過去的行程

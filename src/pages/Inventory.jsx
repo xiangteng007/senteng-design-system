@@ -1,86 +1,608 @@
 
-import React, { useState } from 'react';
-import { WidgetWrapper } from '../components/common/WidgetWrapper';
-import { Plus, Package } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+    Package, Plus, Search, Filter, Edit2, Trash2,
+    ArrowDownCircle, ArrowUpCircle, AlertTriangle,
+    CheckCircle, XCircle, X, Save, History, MapPin,
+    BarChart3, TrendingDown, TrendingUp, Box
+} from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
-import { SectionTitle } from '../components/common/Indicators'; // Ensure this is imported
+import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 
-// --- Local Inventory Widgets ---
-const WidgetInventoryStats = ({ data, size }) => {
-    const lowStock = data.filter(i => i.status === '庫存偏低' || i.status === '缺貨').length;
-    if (size === 'S') return <div className="h-full flex flex-col justify-between"><Package size={24} className={lowStock > 0 ? "text-red-500" : "text-gray-400"} /><div><div className="text-3xl font-bold text-morandi-text-primary">{lowStock}</div><div className="text-xs text-gray-500">缺貨/低庫存</div></div></div>;
-    return <div className="h-full flex items-center justify-center text-gray-400 text-sm">庫存分析圖表 (待實作)</div>;
+// 庫存類別
+const CATEGORIES = ['全部', '電氣', '油漆', '燈具', '五金', '木料', '其他'];
+
+// 狀態選項
+const STATUS_OPTIONS = ['全部', '充足', '庫存偏低', '缺貨'];
+
+// 狀態顏色
+const getStatusColor = (status) => {
+    switch (status) {
+        case '缺貨': return 'red';
+        case '庫存偏低': return 'orange';
+        case '充足': return 'green';
+        default: return 'gray';
+    }
 };
 
-const WidgetInventoryList = ({ data, size, onAdd }) => {
-    if (size === 'S') return <div className="h-full flex flex-col justify-center items-center gap-2"><div className="w-12 h-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors" onClick={onAdd}><Plus size={24} /></div><button className="text-xs font-bold text-gray-600 hover:text-morandi-blue-600" onClick={onAdd}>新增品項</button></div>;
-    return (
-        <div className="flex flex-col h-full">
-            <div className="flex justify-between mb-4 items-center">
-                <h4 className="font-bold text-gray-600 text-xs">列表 ({data.length})</h4>
-                {size === 'L' && <button onClick={onAdd} className="bg-morandi-text-accent text-white px-2.5 py-1 text-xs rounded-lg hover:bg-gray-700 flex items-center gap-1 transition-colors"><Plus size={12} /> 新增</button>}
+// 計算狀態
+const calculateStatus = (quantity, safeStock) => {
+    if (quantity <= 0) return '缺貨';
+    if (quantity < safeStock) return '庫存偏低';
+    return '充足';
+};
+
+// 格式化日期
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('zh-TW');
+};
+
+// 統計卡片組件
+const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
+    <div
+        onClick={onClick}
+        className={`bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}
+    >
+        <div className="flex items-center justify-between">
+            <div className={`w-10 h-10 rounded-lg bg-${color}-100 flex items-center justify-center`}>
+                <Icon size={20} className={`text-${color}-600`} />
             </div>
-            <div className="overflow-y-auto pr-1 flex-1 custom-scrollbar">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 font-medium sticky top-0"><tr><th className="p-3 rounded-l-lg">品項</th><th className="p-3">數量</th><th className="p-3 rounded-r-lg">狀態</th></tr></thead>
-                    <tbody>{data.map(i => (<tr key={i.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"><td className="p-3"><div className="font-bold text-gray-700">{i.name}</div><div className="text-xs text-gray-400">{i.spec}</div></td><td className="p-3 font-mono font-bold">{i.quantity}</td><td className="p-3"><Badge color={i.status === '缺貨' ? 'red' : i.status === '庫存偏低' ? 'orange' : 'green'}>{i.status}</Badge></td></tr>))}</tbody>
-                </table>
+            <div className="text-right">
+                <div className={`text-2xl font-bold text-${color}-600`}>{value}</div>
+                <div className="text-xs text-gray-500">{label}</div>
             </div>
         </div>
+    </div>
+);
+
+// 新增/編輯品項 Modal
+const ItemModal = ({ isOpen, onClose, item, onSave, isEdit }) => {
+    const [form, setForm] = useState({
+        name: '', spec: '', category: '其他', quantity: 0,
+        unit: '個', safeStock: 10, location: '', status: '充足'
+    });
+
+    useEffect(() => {
+        if (item) {
+            setForm(item);
+        } else {
+            setForm({
+                name: '', spec: '', category: '其他', quantity: 0,
+                unit: '個', safeStock: 10, location: '', status: '充足'
+            });
+        }
+    }, [item, isOpen]);
+
+    const handleSave = () => {
+        const status = calculateStatus(parseInt(form.quantity), parseInt(form.safeStock));
+        onSave({ ...form, quantity: parseInt(form.quantity), safeStock: parseInt(form.safeStock), status });
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={isEdit ? '編輯庫存品項' : '新增庫存品項'}
+            onConfirm={handleSave}
+        >
+            <div className="space-y-4">
+                <InputField
+                    label="品項名稱"
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    placeholder="例：Panasonic 開關"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                    <InputField
+                        label="規格/型號"
+                        value={form.spec}
+                        onChange={e => setForm({ ...form, spec: e.target.value })}
+                        placeholder="例：PN-001"
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">類別</label>
+                        <select
+                            value={form.category}
+                            onChange={e => setForm({ ...form, category: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            {CATEGORIES.filter(c => c !== '全部').map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <InputField
+                        label="數量"
+                        type="number"
+                        value={form.quantity}
+                        onChange={e => setForm({ ...form, quantity: e.target.value })}
+                    />
+                    <InputField
+                        label="單位"
+                        value={form.unit}
+                        onChange={e => setForm({ ...form, unit: e.target.value })}
+                        placeholder="個、組、箱"
+                    />
+                    <InputField
+                        label="安全庫存"
+                        type="number"
+                        value={form.safeStock}
+                        onChange={e => setForm({ ...form, safeStock: e.target.value })}
+                    />
+                </div>
+                <InputField
+                    label="存放位置"
+                    value={form.location}
+                    onChange={e => setForm({ ...form, location: e.target.value })}
+                    placeholder="例：A-01 貨架"
+                />
+            </div>
+        </Modal>
     );
 };
 
+// 出入庫 Modal
+const StockMovementModal = ({ isOpen, onClose, item, type, onConfirm }) => {
+    const [quantity, setQuantity] = useState(1);
+    const [note, setNote] = useState('');
+
+    useEffect(() => {
+        setQuantity(1);
+        setNote('');
+    }, [isOpen]);
+
+    const handleConfirm = () => {
+        onConfirm({
+            itemId: item.id,
+            itemName: item.name,
+            type: type,
+            quantity: parseInt(quantity),
+            date: new Date().toISOString().split('T')[0],
+            operator: 'Admin',
+            note
+        });
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={type === '入' ? '入庫登記' : '出庫登記'}
+            onConfirm={handleConfirm}
+        >
+            <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-sm text-gray-500">品項</div>
+                    <div className="font-bold text-gray-800">{item?.name}</div>
+                    <div className="text-xs text-gray-400">{item?.spec}</div>
+                    <div className="mt-2 text-sm">
+                        當前數量: <span className="font-bold">{item?.quantity}</span> {item?.unit}
+                    </div>
+                </div>
+                <InputField
+                    label={`${type === '入' ? '入庫' : '出庫'}數量`}
+                    type="number"
+                    value={quantity}
+                    onChange={e => setQuantity(e.target.value)}
+                    min={1}
+                />
+                <InputField
+                    label="備註"
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    placeholder={type === '入' ? '例：批量採購' : '例：出貨至林公館'}
+                />
+                {type === '出' && parseInt(quantity) > (item?.quantity || 0) && (
+                    <div className="text-red-500 text-sm flex items-center gap-1">
+                        <AlertTriangle size={14} />
+                        出庫數量超過庫存！
+                    </div>
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+// 刪除確認 Modal
+const DeleteConfirmModal = ({ isOpen, onClose, item, onConfirm }) => (
+    <Modal isOpen={isOpen} onClose={onClose} title="確認刪除" onConfirm={onConfirm}>
+        <div className="text-center py-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} className="text-red-500" />
+            </div>
+            <p className="text-gray-600">確定要刪除以下品項嗎？</p>
+            <p className="font-bold text-gray-800 mt-2">{item?.name}</p>
+            <p className="text-sm text-gray-500">{item?.spec}</p>
+            <p className="text-sm text-red-500 mt-4">此操作無法還原</p>
+        </div>
+    </Modal>
+);
+
+// 主組件
 const Inventory = ({ data, addToast }) => {
-    const [items, setItems] = useState(data); // Local State for sort/filter/add
-    const [widgets, setWidgets] = useState([
-        { id: 'wi-stats', type: 'inventory-stats', title: '庫存概況', size: 'S' },
-        { id: 'wi-list', type: 'inventory-list', title: '庫存清單', size: 'L' }
-    ]);
+    // 狀態
+    const [items, setItems] = useState(data || []);
+    const [movements, setMovements] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('全部');
+    const [statusFilter, setStatusFilter] = useState('全部');
+
+    // Modal 狀態
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newItem, setNewItem] = useState({ name: "", spec: "", quantity: 0, unit: "個", status: "充足", location: "", safeStock: 10 });
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [movementType, setMovementType] = useState('入');
 
-    // Update items when prop data changes (initial load)
-    // useEffect(() => setItems(data), [data]); // Optional depending on how App updates
+    // 初始化
+    useEffect(() => {
+        if (data) setItems(data);
+    }, [data]);
 
-    const handleResize = (id, size) => setWidgets(prev => prev.map(w => w.id === id ? { ...w, size } : w));
+    // 篩選邏輯
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            const matchSearch = !searchTerm ||
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.spec?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchCategory = categoryFilter === '全部' || item.category === categoryFilter;
+            const matchStatus = statusFilter === '全部' || item.status === statusFilter;
+            return matchSearch && matchCategory && matchStatus;
+        });
+    }, [items, searchTerm, categoryFilter, statusFilter]);
 
-    const handleAddItem = async () => {
+    // 統計數據
+    const stats = useMemo(() => {
+        const total = items.length;
+        const lowStock = items.filter(i => i.status === '庫存偏低').length;
+        const outOfStock = items.filter(i => i.status === '缺貨').length;
+        const thisMonth = movements.filter(m => {
+            const moveDate = new Date(m.date);
+            const now = new Date();
+            return moveDate.getMonth() === now.getMonth() && moveDate.getFullYear() === now.getFullYear();
+        });
+        const monthIn = thisMonth.filter(m => m.type === '入').reduce((sum, m) => sum + m.quantity, 0);
+        const monthOut = thisMonth.filter(m => m.type === '出').reduce((sum, m) => sum + m.quantity, 0);
+        return { total, lowStock, outOfStock, monthIn, monthOut };
+    }, [items, movements]);
+
+    // 新增品項
+    const handleAddItem = async (newItem) => {
         const itemToAdd = { ...newItem, id: `i-${Date.now()}` };
         const newItems = [...items, itemToAdd];
         setItems(newItems);
         await GoogleService.syncToSheet('inventory', newItems);
-        addToast("品項新增成功！(已同步至 Google Sheet)", 'success');
+        addToast('品項新增成功！', 'success');
         setIsAddModalOpen(false);
     };
 
+    // 編輯品項
+    const handleEditItem = async (updatedItem) => {
+        const newItems = items.map(i => i.id === updatedItem.id ? updatedItem : i);
+        setItems(newItems);
+        await GoogleService.syncToSheet('inventory', newItems);
+        addToast('品項更新成功！', 'success');
+        setIsEditModalOpen(false);
+        setSelectedItem(null);
+    };
+
+    // 刪除品項
+    const handleDeleteItem = async () => {
+        const newItems = items.filter(i => i.id !== selectedItem.id);
+        setItems(newItems);
+        await GoogleService.syncToSheet('inventory', newItems);
+        addToast('品項已刪除', 'info');
+        setIsDeleteModalOpen(false);
+        setSelectedItem(null);
+    };
+
+    // 出入庫
+    const handleStockMovement = async (movement) => {
+        // 更新庫存數量
+        const delta = movement.type === '入' ? movement.quantity : -movement.quantity;
+        const newItems = items.map(i => {
+            if (i.id === movement.itemId) {
+                const newQty = Math.max(0, i.quantity + delta);
+                return { ...i, quantity: newQty, status: calculateStatus(newQty, i.safeStock) };
+            }
+            return i;
+        });
+
+        // 記錄出入庫
+        const newMovement = { ...movement, id: `sm-${Date.now()}` };
+        const newMovements = [...movements, newMovement];
+
+        setItems(newItems);
+        setMovements(newMovements);
+        await GoogleService.syncToSheet('inventory', newItems);
+        addToast(`${movement.type === '入' ? '入庫' : '出庫'}成功！`, 'success');
+        setIsMovementModalOpen(false);
+        setSelectedItem(null);
+    };
+
+    // 開啟編輯
+    const openEdit = (item) => {
+        setSelectedItem(item);
+        setIsEditModalOpen(true);
+    };
+
+    // 開啟刪除確認
+    const openDelete = (item) => {
+        setSelectedItem(item);
+        setIsDeleteModalOpen(true);
+    };
+
+    // 開啟出入庫
+    const openMovement = (item, type) => {
+        setSelectedItem(item);
+        setMovementType(type);
+        setIsMovementModalOpen(true);
+    };
+
     return (
-        <div className="space-y-4 sm:space-y-6 animate-fade-in">
-            <SectionTitle title="庫存管理" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-auto">
-                {widgets.map((w, i) => (
-                    <WidgetWrapper key={w.id} widget={w} onResize={handleResize}>
-                        {w.type === 'inventory-stats' && <WidgetInventoryStats data={items} size={w.size} />}
-                        {w.type === 'inventory-list' && <WidgetInventoryList data={items} size={w.size} onAdd={() => setIsAddModalOpen(true)} />}
-                    </WidgetWrapper>
-                ))}
+        <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center">
+                <SectionTitle title="庫存管理" />
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    <Plus size={18} />
+                    新增品項
+                </button>
             </div>
 
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="新增庫存品項" onConfirm={handleAddItem}>
-                <InputField label="品項名稱" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
-                <InputField label="規格/型號" value={newItem.spec} onChange={e => setNewItem({ ...newItem, spec: e.target.value })} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="數量" type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: e.target.value })} />
-                    <InputField label="單位" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} placeholder="例：個、箱、組" />
+            {/* 統計卡片 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard
+                    icon={Box}
+                    label="總品項數"
+                    value={stats.total}
+                    color="blue"
+                />
+                <StatCard
+                    icon={AlertTriangle}
+                    label="庫存偏低"
+                    value={stats.lowStock}
+                    color="orange"
+                    onClick={() => setStatusFilter('庫存偏低')}
+                />
+                <StatCard
+                    icon={XCircle}
+                    label="缺貨"
+                    value={stats.outOfStock}
+                    color="red"
+                    onClick={() => setStatusFilter('缺貨')}
+                />
+                <StatCard
+                    icon={TrendingDown}
+                    label="本月出庫"
+                    value={stats.monthOut}
+                    color="purple"
+                />
+            </div>
+
+            {/* 搜尋與篩選 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex flex-col md:flex-row gap-4">
+                    {/* 搜尋框 */}
+                    <div className="flex-1 relative">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="搜尋品名或規格..."
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    {/* 類別篩選 */}
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                        {CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat === '全部' ? '所有類別' : cat}</option>
+                        ))}
+                    </select>
+
+                    {/* 狀態篩選 */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                        {STATUS_OPTIONS.map(status => (
+                            <option key={status} value={status}>{status === '全部' ? '所有狀態' : status}</option>
+                        ))}
+                    </select>
+
+                    {/* 清除篩選 */}
+                    {(searchTerm || categoryFilter !== '全部' || statusFilter !== '全部') && (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setCategoryFilter('全部');
+                                setStatusFilter('全部');
+                            }}
+                            className="px-4 py-2 text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                        >
+                            <X size={16} />
+                            清除
+                        </button>
+                    )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <InputField label="存放位置" value={newItem.location} onChange={e => setNewItem({ ...newItem, location: e.target.value })} />
-                    <InputField label="安全庫存量" type="number" value={newItem.safeStock} onChange={e => setNewItem({ ...newItem, safeStock: e.target.value })} />
+            </div>
+
+            {/* 庫存列表 */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-600">
+                            <tr>
+                                <th className="text-left p-4 font-medium">品名</th>
+                                <th className="text-left p-4 font-medium">規格</th>
+                                <th className="text-left p-4 font-medium">類別</th>
+                                <th className="text-center p-4 font-medium">數量</th>
+                                <th className="text-center p-4 font-medium">安全存量</th>
+                                <th className="text-left p-4 font-medium">位置</th>
+                                <th className="text-center p-4 font-medium">狀態</th>
+                                <th className="text-center p-4 font-medium">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="text-center py-12 text-gray-400">
+                                        <Package size={48} className="mx-auto mb-2 opacity-50" />
+                                        <p>沒有找到符合條件的品項</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredItems.map(item => (
+                                    <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                                        <td className="p-4">
+                                            <div className="font-medium text-gray-800">{item.name}</div>
+                                        </td>
+                                        <td className="p-4 text-gray-500">{item.spec || '-'}</td>
+                                        <td className="p-4">
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                                {item.category || '其他'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="font-mono font-bold text-gray-800">{item.quantity}</span>
+                                            <span className="text-gray-400 ml-1">{item.unit}</span>
+                                        </td>
+                                        <td className="p-4 text-center text-gray-500">{item.safeStock}</td>
+                                        <td className="p-4">
+                                            {item.location ? (
+                                                <span className="flex items-center gap-1 text-gray-600">
+                                                    <MapPin size={14} />
+                                                    {item.location}
+                                                </span>
+                                            ) : '-'}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <Badge color={getStatusColor(item.status)}>{item.status}</Badge>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={() => openMovement(item, '入')}
+                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                    title="入庫"
+                                                >
+                                                    <ArrowDownCircle size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => openMovement(item, '出')}
+                                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                                    title="出庫"
+                                                >
+                                                    <ArrowUpCircle size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => openEdit(item)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="編輯"
+                                                >
+                                                    <Edit2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => openDelete(item)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="刪除"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            </Modal>
+
+                {/* 列表底部資訊 */}
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 text-sm text-gray-500">
+                    顯示 {filteredItems.length} / {items.length} 筆資料
+                </div>
+            </div>
+
+            {/* 最近出入庫記錄 */}
+            {movements.length > 0 && (
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <History size={18} />
+                        最近出入庫記錄
+                    </h4>
+                    <div className="space-y-2">
+                        {movements.slice(-5).reverse().map(m => (
+                            <div key={m.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                <div className="flex items-center gap-3">
+                                    {m.type === '入' ? (
+                                        <ArrowDownCircle size={18} className="text-green-500" />
+                                    ) : (
+                                        <ArrowUpCircle size={18} className="text-purple-500" />
+                                    )}
+                                    <div>
+                                        <div className="font-medium text-gray-700">{m.itemName}</div>
+                                        <div className="text-xs text-gray-400">{m.note || '-'}</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className={`font-bold ${m.type === '入' ? 'text-green-600' : 'text-purple-600'}`}>
+                                        {m.type === '入' ? '+' : '-'}{m.quantity}
+                                    </div>
+                                    <div className="text-xs text-gray-400">{formatDate(m.date)}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Modals */}
+            <ItemModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                item={null}
+                onSave={handleAddItem}
+                isEdit={false}
+            />
+            <ItemModal
+                isOpen={isEditModalOpen}
+                onClose={() => { setIsEditModalOpen(false); setSelectedItem(null); }}
+                item={selectedItem}
+                onSave={handleEditItem}
+                isEdit={true}
+            />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => { setIsDeleteModalOpen(false); setSelectedItem(null); }}
+                item={selectedItem}
+                onConfirm={handleDeleteItem}
+            />
+            <StockMovementModal
+                isOpen={isMovementModalOpen}
+                onClose={() => { setIsMovementModalOpen(false); setSelectedItem(null); }}
+                item={selectedItem}
+                type={movementType}
+                onConfirm={handleStockMovement}
+            />
         </div>
     );
 };
+
 export default Inventory;
