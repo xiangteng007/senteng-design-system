@@ -335,5 +335,45 @@ export const GoogleService = {
       console.error('GAS API Error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // 匯出估算清單到 Google Sheet
+  exportEstimateToSheet: async (estimateName, items, totalCost) => {
+    console.log(`📊 Exporting estimate to Sheet: ${estimateName}...`);
+
+    try {
+      const result = await callGASWithJSONP('export_estimate_to_sheet', {
+        estimateName,
+        items: items.map(item => ({
+          category: item.category || '未分類',
+          name: item.name,
+          spec: item.spec,
+          unit: item.unit,
+          price: item.price,
+          quantity: item.quantity,
+          subtotal: item.price * item.quantity,
+          note: item.note || ''
+        })),
+        totalCost,
+        createdAt: new Date().toISOString()
+      });
+
+      if (result.success) {
+        const sheetUrl = result.data?.sheetUrl || '';
+        console.log(`✅ Estimate exported to Sheet: ${sheetUrl}`);
+        return {
+          success: true,
+          sheetUrl,
+          sheetId: result.data?.sheetId,
+          folderUrl: result.data?.folderUrl
+        };
+      } else {
+        console.error(`❌ Failed to export estimate:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };

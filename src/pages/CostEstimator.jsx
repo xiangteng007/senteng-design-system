@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calculator, FolderPlus, RefreshCw, Plus, Trash2, Save, DollarSign, Package, Paintbrush, Hammer, Wrench, Layers, GlassWater, Info, Edit2, X, Check } from 'lucide-react';
+import { Calculator, FolderPlus, RefreshCw, Plus, Trash2, Save, DollarSign, Package, Paintbrush, Hammer, Wrench, Layers, GlassWater, Info, Edit2, X, Check, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 
@@ -69,6 +69,9 @@ export const CostEstimator = ({ addToast }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [driveFolder, setDriveFolder] = useState(null);
     const [isInitializing, setIsInitializing] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportedSheet, setExportedSheet] = useState(null);
+    const [estimateName, setEstimateName] = useState('');
 
     // 編輯物料狀態
     const [editingMaterial, setEditingMaterial] = useState(null);
@@ -182,6 +185,51 @@ export const CostEstimator = ({ addToast }) => {
     const cancelEdit = () => {
         setEditingMaterial(null);
         setEditForm({ name: '', spec: '', unit: '', price: 0, note: '' });
+    };
+
+    // 匯出估算清單到 Google Sheet
+    const exportToSheet = async () => {
+        if (estimateItems.length === 0) {
+            addToast?.('請先加入估算項目', 'warning');
+            return;
+        }
+
+        const name = estimateName.trim() || `估算清單_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}`;
+
+        setIsExporting(true);
+        try {
+            // 為每個項目添加類別資訊
+            const itemsWithCategory = estimateItems.map(item => {
+                // 找出這個物料屬於哪個類別
+                let itemCategory = '未分類';
+                for (const [cat, mats] of Object.entries(materials)) {
+                    if (mats.some(m => m.id === item.id)) {
+                        itemCategory = cat;
+                        break;
+                    }
+                }
+                return { ...item, category: itemCategory };
+            });
+
+            const result = await GoogleService.exportEstimateToSheet(name, itemsWithCategory, totalCost);
+
+            if (result.success) {
+                setExportedSheet(result);
+                addToast?.('已匯出到 Google Sheet！', 'success', {
+                    action: {
+                        label: '開啟 Sheet',
+                        onClick: () => window.open(result.sheetUrl, '_blank')
+                    }
+                });
+            } else {
+                addToast?.(result.error || '匯出失敗', 'error');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            addToast?.('匯出失敗：' + error.message, 'error');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const categories = Object.keys(materials);
@@ -482,6 +530,57 @@ export const CostEstimator = ({ addToast }) => {
                             >
                                 開啟 Google Drive 資料夾 →
                             </a>
+                        </div>
+                    )}
+
+                    {/* 匯出到 Google Sheet */}
+                    {estimateItems.length > 0 && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <FileSpreadsheet size={18} className="text-blue-600" />
+                                <span className="font-medium text-blue-800">匯出估算清單到 Google Sheet</span>
+                            </div>
+                            <div className="space-y-3">
+                                <input
+                                    type="text"
+                                    value={estimateName}
+                                    onChange={(e) => setEstimateName(e.target.value)}
+                                    placeholder="輸入估算清單名稱（選填）"
+                                    className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                />
+                                <button
+                                    onClick={exportToSheet}
+                                    disabled={isExporting}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isExporting ? (
+                                        <>
+                                            <RefreshCw size={16} className="animate-spin" />
+                                            匯出中...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FileSpreadsheet size={16} />
+                                            匯出到 Google Sheet
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* 已匯出的 Sheet 連結 */}
+                            {exportedSheet && (
+                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                    <a
+                                        href={exportedSheet.sheetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    >
+                                        <ExternalLink size={14} />
+                                        開啟已匯出的 Sheet
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
