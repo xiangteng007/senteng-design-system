@@ -62,11 +62,11 @@ const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
         className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all text-left w-full ${onClick ? 'cursor-pointer' : ''}`}
     >
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                color === 'green' ? 'bg-green-100 text-green-600' :
-                    color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                        color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                            color === 'red' ? 'bg-red-100 text-red-600' :
-                                'bg-gray-100 text-gray-600'
+            color === 'green' ? 'bg-green-100 text-green-600' :
+                color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                    color === 'orange' ? 'bg-orange-100 text-orange-600' :
+                        color === 'red' ? 'bg-red-100 text-red-600' :
+                            'bg-gray-100 text-gray-600'
             }`}>
             <Icon size={20} />
         </div>
@@ -85,35 +85,35 @@ const VendorRow = ({ vendor, onSelect, onDelete }) => {
 
     return (
         <div
-            className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group gap-2 sm:gap-0"
             onClick={() => onSelect(vendor)}
         >
-            <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${categoryConfig.color === 'orange' ? 'bg-orange-100 text-orange-600' :
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${categoryConfig.color === 'orange' ? 'bg-orange-100 text-orange-600' :
                         categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
                             categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
                                 'bg-gray-100 text-gray-600'
                     }`}>
-                    <CategoryIcon size={24} />
+                    <CategoryIcon size={20} className="sm:w-6 sm:h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                     <div className="font-bold text-gray-800 flex items-center gap-2 flex-wrap">
-                        {vendor.name}
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.bg}`}>
+                        <span className="truncate">{vendor.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusConfig.bg}`}>
                             {vendor.status}
                         </span>
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center gap-3 mt-1 flex-wrap">
+                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
                         {vendor.tradeType && <span className="flex items-center gap-1"><Wrench size={12} /> {vendor.tradeType}</span>}
-                        {vendor.contactPerson && <span className="flex items-center gap-1"><User size={12} /> {vendor.contactPerson}</span>}
+                        {vendor.contactPerson && <span className="hidden sm:flex items-center gap-1"><User size={12} /> {vendor.contactPerson}</span>}
                         <StarRating rating={vendor.rating} readonly />
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(vendor.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                 >
                     <Trash2 size={16} />
                 </button>
@@ -302,9 +302,9 @@ const Vendors = ({ data = [], loading, addToast }) => {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                         <div className="flex items-center gap-4">
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center ${categoryConfig.color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                                    categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                                        categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-                                            'bg-gray-100 text-gray-600'
+                                categoryConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                                    categoryConfig.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                                        'bg-gray-100 text-gray-600'
                                 }`}>
                                 <CategoryIcon size={32} />
                             </div>
@@ -475,10 +475,10 @@ const Vendors = ({ data = [], loading, addToast }) => {
                                         type="button"
                                         onClick={() => setNewReview({ ...newReview, sentiment: opt.value })}
                                         className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all ${newReview.sentiment === opt.value
-                                                ? opt.color === 'green' ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                                                    : opt.color === 'red' ? 'bg-red-100 text-red-700 border-2 border-red-300'
-                                                        : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-                                                : 'bg-gray-50 text-gray-500 border border-gray-200'
+                                            ? opt.color === 'green' ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                                                : opt.color === 'red' ? 'bg-red-100 text-red-700 border-2 border-red-300'
+                                                    : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+                                            : 'bg-gray-50 text-gray-500 border border-gray-200'
                                             }`}
                                     >
                                         <opt.icon size={16} />

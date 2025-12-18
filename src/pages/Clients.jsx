@@ -29,10 +29,10 @@ const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
         className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-all text-left w-full ${onClick ? 'cursor-pointer' : ''}`}
     >
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                color === 'green' ? 'bg-green-100 text-green-600' :
-                    color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                        color === 'red' ? 'bg-red-100 text-red-600' :
-                            'bg-gray-100 text-gray-600'
+            color === 'green' ? 'bg-green-100 text-green-600' :
+                color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                    color === 'red' ? 'bg-red-100 text-red-600' :
+                        'bg-gray-100 text-gray-600'
             }`}>
             <Icon size={20} />
         </div>
@@ -49,30 +49,30 @@ const ClientRow = ({ client, onSelect, onDelete }) => {
 
     return (
         <div
-            className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group gap-2 sm:gap-0"
             onClick={() => onSelect(client)}
         >
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-lg font-bold text-gray-600">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-base sm:text-lg font-bold text-gray-600 flex-shrink-0">
                     {client.name[0]}
                 </div>
-                <div>
-                    <div className="font-bold text-gray-800 flex items-center gap-2">
-                        {client.name}
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.bg}`}>
+                <div className="min-w-0 flex-1">
+                    <div className="font-bold text-gray-800 flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{client.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusConfig.bg}`}>
                             {client.status}
                         </span>
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center gap-3 mt-1">
+                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
                         {client.phone && <span className="flex items-center gap-1"><Phone size={12} /> {client.phone}</span>}
-                        {client.email && <span className="flex items-center gap-1"><Mail size={12} /> {client.email}</span>}
+                        {client.email && <span className="hidden sm:flex items-center gap-1"><Mail size={12} /> <span className="truncate max-w-[150px]">{client.email}</span></span>}
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(client.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                 >
                     <Trash2 size={16} />
                 </button>
