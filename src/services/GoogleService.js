@@ -418,6 +418,7 @@ export const GoogleService = {
           safeStock: item.safeStock,
           location: item.location || '',
           status: item.status,
+          mainCategory: item.mainCategory || '',
           category: item.category || '其他'
         })))
       });

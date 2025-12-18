@@ -13,11 +13,38 @@ import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
 import { GoogleService } from '../services/GoogleService';
 
-// 庫存類別
-const CATEGORIES = ['全部', '電氣', '油漆', '燈具', '五金', '木料', '其他'];
+// 庫存類別 - 兩層結構
+const CATEGORY_TREE = {
+    '結構板材': ['木料', '板材', '防火板', '輕鋼架'],
+    '裝飾建材': ['地面材料', '牆面材料', '天花材料', '塗料油漆'],
+    '機電設備': ['電氣電線', '燈具照明', '開關插座', '弱電設備', '水管衛浴'],
+    '五金配件': ['門窗五金', '櫃體五金', '結構五金', '裝飾五金'],
+    '消耗品': ['黏著劑', '填縫材料', '防護用品', '清潔用品']
+};
+
+// 主類別列表（含「全部」選項）
+const MAIN_CATEGORIES = ['全部', ...Object.keys(CATEGORY_TREE)];
+
+// 所有子類別的扁平列表
+const ALL_SUB_CATEGORIES = Object.values(CATEGORY_TREE).flat();
+
+// 根據主類別獲取子類別
+const getSubCategories = (mainCategory) => {
+    if (mainCategory === '全部' || !mainCategory) return ALL_SUB_CATEGORIES;
+    return CATEGORY_TREE[mainCategory] || [];
+};
+
+// 根據子類別找主類別
+const getMainCategory = (subCategory) => {
+    for (const [main, subs] of Object.entries(CATEGORY_TREE)) {
+        if (subs.includes(subCategory)) return main;
+    }
+    return '消耗品'; // 預設
+};
 
 // 狀態選項
 const STATUS_OPTIONS = ['全部', '充足', '庫存偏低', '缺貨'];
+
 
 // 狀態顏色
 const getStatusColor = (status) => {
@@ -63,25 +90,38 @@ const StatCard = ({ icon: Icon, label, value, color = 'gray', onClick }) => (
 // 新增/編輯品項 Modal
 const ItemModal = ({ isOpen, onClose, item, onSave, isEdit }) => {
     const [form, setForm] = useState({
-        name: '', spec: '', category: '其他', quantity: 0,
+        name: '', spec: '', mainCategory: '消耗品', category: '黏著劑', quantity: 0,
         unit: '個', safeStock: 10, location: '', status: '充足'
     });
 
     useEffect(() => {
         if (item) {
-            setForm(item);
+            // 若舊資料沒有 mainCategory，根據 category 推算
+            const mainCat = item.mainCategory || getMainCategory(item.category);
+            setForm({ ...item, mainCategory: mainCat });
         } else {
             setForm({
-                name: '', spec: '', category: '其他', quantity: 0,
+                name: '', spec: '', mainCategory: '消耗品', category: '黏著劑', quantity: 0,
                 unit: '個', safeStock: 10, location: '', status: '充足'
             });
         }
     }, [item, isOpen]);
 
+    const handleMainCategoryChange = (newMain) => {
+        const subCats = CATEGORY_TREE[newMain] || [];
+        setForm({
+            ...form,
+            mainCategory: newMain,
+            category: subCats[0] || '' // 預設選第一個子類別
+        });
+    };
+
     const handleSave = () => {
         const status = calculateStatus(parseInt(form.quantity), parseInt(form.safeStock));
         onSave({ ...form, quantity: parseInt(form.quantity), safeStock: parseInt(form.safeStock), status });
     };
+
+    const availableSubCategories = CATEGORY_TREE[form.mainCategory] || [];
 
     return (
         <Modal
@@ -105,17 +145,37 @@ const ItemModal = ({ isOpen, onClose, item, onSave, isEdit }) => {
                         placeholder="例：PN-001"
                     />
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">類別</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">主類別</label>
+                        <select
+                            value={form.mainCategory}
+                            onChange={e => handleMainCategoryChange(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            {Object.keys(CATEGORY_TREE).map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">子類別</label>
                         <select
                             value={form.category}
                             onChange={e => setForm({ ...form, category: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
-                            {CATEGORIES.filter(c => c !== '全部').map(cat => (
+                            {availableSubCategories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
                     </div>
+                    <InputField
+                        label="單位"
+                        value={form.unit}
+                        onChange={e => setForm({ ...form, unit: e.target.value })}
+                        placeholder="個、組、箱"
+                    />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     <InputField
@@ -125,28 +185,23 @@ const ItemModal = ({ isOpen, onClose, item, onSave, isEdit }) => {
                         onChange={e => setForm({ ...form, quantity: e.target.value })}
                     />
                     <InputField
-                        label="單位"
-                        value={form.unit}
-                        onChange={e => setForm({ ...form, unit: e.target.value })}
-                        placeholder="個、組、箱"
-                    />
-                    <InputField
                         label="安全庫存"
                         type="number"
                         value={form.safeStock}
                         onChange={e => setForm({ ...form, safeStock: e.target.value })}
                     />
+                    <InputField
+                        label="存放位置"
+                        value={form.location}
+                        onChange={e => setForm({ ...form, location: e.target.value })}
+                        placeholder="A-01"
+                    />
                 </div>
-                <InputField
-                    label="存放位置"
-                    value={form.location}
-                    onChange={e => setForm({ ...form, location: e.target.value })}
-                    placeholder="例：A-01 貨架"
-                />
             </div>
         </Modal>
     );
 };
+
 
 // 出入庫 Modal
 const StockMovementModal = ({ isOpen, onClose, item, type, onConfirm }) => {
@@ -227,11 +282,11 @@ const DeleteConfirmModal = ({ isOpen, onClose, item, onConfirm }) => (
 
 // 主組件
 const Inventory = ({ data, addToast }) => {
-    // 狀態
     const [items, setItems] = useState(data || []);
     const [movements, setMovements] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('全部');
+    const [mainCategoryFilter, setMainCategoryFilter] = useState('全部');
+    const [subCategoryFilter, setSubCategoryFilter] = useState('全部');
     const [statusFilter, setStatusFilter] = useState('全部');
 
     // Modal 狀態
@@ -258,11 +313,18 @@ const Inventory = ({ data, addToast }) => {
             const matchSearch = !searchTerm ||
                 item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.spec?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchCategory = categoryFilter === '全部' || item.category === categoryFilter;
+
+            // 主類別篩選
+            const itemMainCat = item.mainCategory || getMainCategory(item.category);
+            const matchMainCategory = mainCategoryFilter === '全部' || itemMainCat === mainCategoryFilter;
+
+            // 子類別篩選
+            const matchSubCategory = subCategoryFilter === '全部' || item.category === subCategoryFilter;
+
             const matchStatus = statusFilter === '全部' || item.status === statusFilter;
-            return matchSearch && matchCategory && matchStatus;
+            return matchSearch && matchMainCategory && matchSubCategory && matchStatus;
         });
-    }, [items, searchTerm, categoryFilter, statusFilter]);
+    }, [items, searchTerm, mainCategoryFilter, subCategoryFilter, statusFilter]);
 
     // 統計數據
     const stats = useMemo(() => {
@@ -492,14 +554,29 @@ const Inventory = ({ data, addToast }) => {
                         />
                     </div>
 
-                    {/* 類別篩選 */}
+                    {/* 主類別篩選 */}
                     <select
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        value={mainCategoryFilter}
+                        onChange={(e) => {
+                            setMainCategoryFilter(e.target.value);
+                            setSubCategoryFilter('全部'); // 重置子類別
+                        }}
                         className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                     >
-                        {CATEGORIES.map(cat => (
-                            <option key={cat} value={cat}>{cat === '全部' ? '所有類別' : cat}</option>
+                        {MAIN_CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat === '全部' ? '所有主類別' : cat}</option>
+                        ))}
+                    </select>
+
+                    {/* 子類別篩選 */}
+                    <select
+                        value={subCategoryFilter}
+                        onChange={(e) => setSubCategoryFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                        <option value="全部">所有子類別</option>
+                        {getSubCategories(mainCategoryFilter).map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
                         ))}
                     </select>
 
@@ -515,11 +592,12 @@ const Inventory = ({ data, addToast }) => {
                     </select>
 
                     {/* 清除篩選 */}
-                    {(searchTerm || categoryFilter !== '全部' || statusFilter !== '全部') && (
+                    {(searchTerm || mainCategoryFilter !== '全部' || subCategoryFilter !== '全部' || statusFilter !== '全部') && (
                         <button
                             onClick={() => {
                                 setSearchTerm('');
-                                setCategoryFilter('全部');
+                                setMainCategoryFilter('全部');
+                                setSubCategoryFilter('全部');
                                 setStatusFilter('全部');
                             }}
                             className="px-4 py-2 text-gray-500 hover:text-gray-700 flex items-center gap-1"
@@ -563,9 +641,12 @@ const Inventory = ({ data, addToast }) => {
                                         </td>
                                         <td className="p-4 text-gray-500">{item.spec || '-'}</td>
                                         <td className="p-4">
-                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                                {item.category || '其他'}
-                                            </span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-xs text-gray-400">{item.mainCategory || getMainCategory(item.category)}</span>
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs inline-block w-fit">
+                                                    {item.category || '其他'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className="font-mono font-bold text-gray-800">{item.quantity}</span>
