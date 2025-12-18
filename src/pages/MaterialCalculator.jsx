@@ -284,6 +284,8 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={concreteVolume}
                         unit="m³"
                         wastageValue={concreteWithWastage}
+                        onAddRecord={onAddRecord}
+                        subType="混凝土"
                     />
                 </div>
             )}
@@ -317,6 +319,8 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={rebarWeight}
                         unit="kg"
                         wastageValue={rebarWithWastage}
+                        onAddRecord={onAddRecord}
+                        subType="鋼筋"
                     />
                 </div>
             )}
@@ -353,6 +357,8 @@ const StructureCalculator = ({ onAddRecord }) => {
                         value={formworkResult}
                         unit="m²"
                         wastageValue={formworkWithWastage}
+                        onAddRecord={onAddRecord}
+                        subType="模板"
                     />
                 </div>
             )}
@@ -442,8 +448,8 @@ const MasonryCalculator = ({ onAddRecord }) => {
                         setUseCustom={setMortarCustomWastage}
                     />
                     <div className="grid grid-cols-2 gap-3">
-                        <ResultDisplay label="水泥用量" value={cementAmount} unit="kg" wastageValue={cementWithWastage} />
-                        <ResultDisplay label="砂用量" value={sandAmount} unit="kg" wastageValue={sandWithWastage} />
+                        <ResultDisplay label="水泥用量" value={cementAmount} unit="kg" wastageValue={cementWithWastage} onAddRecord={onAddRecord} subType="打底砂漿" />
+                        <ResultDisplay label="砂用量" value={sandAmount} unit="kg" wastageValue={sandWithWastage} onAddRecord={onAddRecord} subType="打底砂漿" />
                     </div>
                 </div>
             )}
@@ -470,7 +476,7 @@ const MasonryCalculator = ({ onAddRecord }) => {
                         useCustom={brickCustomWastage}
                         setUseCustom={setBrickCustomWastage}
                     />
-                    <ResultDisplay label="紅磚數量" value={brickCount} unit="塊" wastageValue={brickWithWastage} />
+                    <ResultDisplay label="紅磚數量" value={brickCount} unit="塊" wastageValue={brickWithWastage} onAddRecord={onAddRecord} subType="紅磚" />
                 </div>
             )}
 
@@ -482,8 +488,8 @@ const MasonryCalculator = ({ onAddRecord }) => {
                     </div>
                     <InputField label="建築面積" value={quickArea} onChange={setQuickArea} unit="m²" placeholder="0" />
                     <div className="grid grid-cols-2 gap-3">
-                        <ResultDisplay label="水泥概估" value={quickCement} unit="包" showWastage={false} />
-                        <ResultDisplay label="砂概估" value={quickSand} unit="m³" showWastage={false} />
+                        <ResultDisplay label="水泥概估" value={quickCement} unit="包" showWastage={false} onAddRecord={onAddRecord} subType="快速估算" />
+                        <ResultDisplay label="砂概估" value={quickSand} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="快速估算" />
                     </div>
                 </div>
             )}
@@ -599,7 +605,7 @@ const TileCalculator = ({ onAddRecord }) => {
                         useCustom={tileCustomWastage}
                         setUseCustom={setTileCustomWastage}
                     />
-                    <ResultDisplay label="磁磚片數" value={tileCount} unit="片" wastageValue={tileWithWastage} />
+                    <ResultDisplay label="磁磚片數" value={tileCount} unit="片" wastageValue={tileWithWastage} onAddRecord={onAddRecord} subType="磁磚" />
                 </div>
             )}
 
@@ -630,7 +636,7 @@ const TileCalculator = ({ onAddRecord }) => {
                         useCustom={groutCustomWastage}
                         setUseCustom={setGroutCustomWastage}
                     />
-                    <ResultDisplay label="填縫劑用量" value={groutAmount} unit="kg" wastageValue={groutWithWastage} />
+                    <ResultDisplay label="填縫劑用量" value={groutAmount} unit="kg" wastageValue={groutWithWastage} onAddRecord={onAddRecord} subType="填縫劑" />
                 </div>
             )}
 
@@ -659,7 +665,7 @@ const TileCalculator = ({ onAddRecord }) => {
                         useCustom={adhesiveCustomWastage}
                         setUseCustom={setAdhesiveCustomWastage}
                     />
-                    <ResultDisplay label="黏著劑用量" value={adhesiveAmount} unit="kg" wastageValue={adhesiveWithWastage} />
+                    <ResultDisplay label="黏著劑用量" value={adhesiveAmount} unit="kg" wastageValue={adhesiveWithWastage} onAddRecord={onAddRecord} subType="黏著劑" />
                 </div>
             )}
         </div>
@@ -737,7 +743,7 @@ const FinishCalculator = ({ onAddRecord }) => {
                         useCustom={paintCustomWastage}
                         setUseCustom={setPaintCustomWastage}
                     />
-                    <ResultDisplay label="油漆用量" value={paintGallons} unit="加侖" wastageValue={paintWithWastage} />
+                    <ResultDisplay label="油漆用量" value={paintGallons} unit="加侖" wastageValue={paintWithWastage} onAddRecord={onAddRecord} subType="油漆" />
                 </div>
             )}
 
@@ -755,7 +761,7 @@ const FinishCalculator = ({ onAddRecord }) => {
                         useCustom={puttyCustomWastage}
                         setUseCustom={setPuttyCustomWastage}
                     />
-                    <ResultDisplay label="批土用量" value={puttyAmount} unit="kg" wastageValue={puttyWithWastage} />
+                    <ResultDisplay label="批土用量" value={puttyAmount} unit="kg" wastageValue={puttyWithWastage} onAddRecord={onAddRecord} subType="批土" />
                 </div>
             )}
 
@@ -766,7 +772,7 @@ const FinishCalculator = ({ onAddRecord }) => {
                         室內抹灰/塗刷面積 ≈ 建築面積 × 3 ~ 3.8
                     </div>
                     <InputField label="建築面積" value={buildingArea} onChange={setBuildingArea} unit="m²" placeholder="0" />
-                    <ResultDisplay label="預估塗刷面積" value={estimatedPaintArea} unit="m²" showWastage={false} />
+                    <ResultDisplay label="預估塗刷面積" value={estimatedPaintArea} unit="m²" showWastage={false} onAddRecord={onAddRecord} subType="面積估算" />
                     <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
                         地磚面積 ≈ 建築面積 × 0.7 = <strong>{formatNumber((parseFloat(buildingArea) || 0) * 0.7)}</strong> m²
                     </div>
@@ -819,9 +825,9 @@ const BuildingEstimator = ({ onAddRecord }) => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                    <ResultDisplay label="鋼筋總量" value={totalRebar} unit="kg" showWastage={false} />
-                    <ResultDisplay label="混凝土總量" value={totalConcrete} unit="m³" showWastage={false} />
-                    <ResultDisplay label="模板總量" value={totalFormwork} unit="m²" showWastage={false} />
+                    <ResultDisplay label="鋼筋總量" value={totalRebar} unit="kg" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
+                    <ResultDisplay label="混凝土總量" value={totalConcrete} unit="m³" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
+                    <ResultDisplay label="模板總量" value={totalFormwork} unit="m²" showWastage={false} onAddRecord={onAddRecord} subType="建築概估" />
                 </div>
 
                 <div className="text-xs text-gray-500">
