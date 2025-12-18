@@ -25,6 +25,7 @@ const TAIWAN_HOLIDAYS = {
     '2024-06-10': '端午節',
     '2024-09-17': '中秋節',
     '2024-10-10': '國慶日',
+    '2024-12-25': '行憲紀念日',
     // 2025
     '2025-01-01': '元旦',
     '2025-01-28': '除夕',
@@ -33,13 +34,14 @@ const TAIWAN_HOLIDAYS = {
     '2025-01-31': '初三',
     '2025-02-01': '初四',
     '2025-02-28': '和平紀念日',
-    '2025-04-03': '兒童節（彈性假期）',
+    '2025-04-03': '兒童節（彈性）',
     '2025-04-04': '兒童節/清明節',
-    '2025-04-05': '清明節（彈性假期）',
+    '2025-04-05': '清明節（彈性）',
     '2025-05-01': '勞動節',
     '2025-05-31': '端午節',
     '2025-10-06': '中秋節',
     '2025-10-10': '國慶日',
+    '2025-12-25': '行憲紀念日',
     // 2026
     '2026-01-01': '元旦',
     '2026-02-16': '除夕',
@@ -54,6 +56,7 @@ const TAIWAN_HOLIDAYS = {
     '2026-06-19': '端午節',
     '2026-09-25': '中秋節',
     '2026-10-10': '國慶日',
+    '2026-12-25': '行憲紀念日',
 };
 
 const Schedule = ({ data = [], addToast }) => {
@@ -145,8 +148,8 @@ const Schedule = ({ data = [], addToast }) => {
                 <button
                     onClick={() => setShowHolidays(!showHolidays)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${showHolidays
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                 >
                     <CalendarDays size={16} />
@@ -197,12 +200,12 @@ const Schedule = ({ data = [], addToast }) => {
                                     <>
                                         {/* 日期數字 */}
                                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm mb-1 ${isToday
-                                                ? 'bg-blue-500 text-white font-bold shadow-md'
-                                                : events.length > 0
-                                                    ? 'bg-morandi-text-accent text-white font-bold shadow-md'
-                                                    : holiday || weekend
-                                                        ? 'text-red-500 font-medium'
-                                                        : 'text-gray-500'
+                                            ? 'bg-blue-500 text-white font-bold shadow-md'
+                                            : events.length > 0
+                                                ? 'bg-morandi-text-accent text-white font-bold shadow-md'
+                                                : holiday || weekend
+                                                    ? 'text-red-500 font-medium'
+                                                    : 'text-gray-500'
                                             }`}>
                                             {day}
                                         </div>
