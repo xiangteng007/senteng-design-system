@@ -102,7 +102,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
     const [isEditing, setIsEditing] = useState(false);
     const [editFormData, setEditFormData] = useState(null);
     const [newClientData, setNewClientData] = useState({
-        name: "", phone: "", email: "", address: "", status: "洽談中",
+        name: "", phone: "", email: "", lineId: "", address: "", status: "洽談中",
         customFields: [], contactLogs: [], source: "", budget: "", notes: ""
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -341,6 +341,12 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                                         <span className="text-gray-900">{activeClient.budget}</span>
                                     </div>
                                 )}
+                                {activeClient.lineId && (
+                                    <div>
+                                        <span className="text-gray-500 block mb-1">LINE ID</span>
+                                        <span className="text-gray-900">{activeClient.lineId}</span>
+                                    </div>
+                                )}
                                 {activeClient.customFields?.map((field, idx) => (
                                     <div key={idx} className={field.value?.length > 20 ? "col-span-2" : ""}>
                                         <span className="text-gray-500 block mb-1">{field.label}</span>
@@ -554,6 +560,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
                     <InputField label="來源" value={newClientData.source} onChange={e => setNewClientData({ ...newClientData, source: e.target.value })} placeholder="例：朋友介紹" />
                     <InputField label="預算範圍" value={newClientData.budget} onChange={e => setNewClientData({ ...newClientData, budget: e.target.value })} placeholder="例：200-300萬" />
                 </div>
+                <InputField label="LINE ID" value={newClientData.lineId} onChange={e => setNewClientData({ ...newClientData, lineId: e.target.value })} placeholder="例：@lineid 或 名稱" />
                 <div className="border-t border-gray-100 pt-4 mt-4">
                     <h4 className="text-sm font-bold text-gray-700 mb-3">自訂欄位</h4>
                     <DynamicFieldEditor fields={newClientData.customFields} onChange={(newFields) => setNewClientData({ ...newClientData, customFields: newFields })} />

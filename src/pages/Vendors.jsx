@@ -185,7 +185,7 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
     const handleOpenAdd = () => {
         setCurrentVendor({
             name: "", category: "工程工班", tradeType: "", contactPerson: "",
-            phone: "", address: "", rating: "5", status: "合作中", tags: "", reviews: []
+            phone: "", email: "", lineId: "", address: "", rating: "5", status: "合作中", tags: "", reviews: []
         });
         setIsModalOpen(true);
     };
@@ -407,6 +407,18 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
                                     <div className="col-span-2">
                                         <span className="text-gray-500 block mb-1"><MapPin size={14} className="inline mr-1" />地址</span>
                                         <span className="text-gray-900">{activeVendor.address}</span>
+                                    </div>
+                                )}
+                                {activeVendor.email && (
+                                    <div>
+                                        <span className="text-gray-500 block mb-1">Email</span>
+                                        <span className="text-gray-900">{activeVendor.email}</span>
+                                    </div>
+                                )}
+                                {activeVendor.lineId && (
+                                    <div>
+                                        <span className="text-gray-500 block mb-1">LINE ID</span>
+                                        <span className="text-gray-900">{activeVendor.lineId}</span>
                                     </div>
                                 )}
                                 {activeVendor.tags?.length > 0 && (
@@ -650,6 +662,10 @@ const Vendors = ({ data = [], loading, addToast, allProjects = [] }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <InputField label="聯絡人" value={currentVendor.contactPerson} onChange={e => setCurrentVendor({ ...currentVendor, contactPerson: e.target.value })} />
                             <InputField label="電話" value={currentVendor.phone} onChange={e => setCurrentVendor({ ...currentVendor, phone: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <InputField label="Email" value={currentVendor.email || ''} onChange={e => setCurrentVendor({ ...currentVendor, email: e.target.value })} placeholder="例：vendor@email.com" />
+                            <InputField label="LINE ID" value={currentVendor.lineId || ''} onChange={e => setCurrentVendor({ ...currentVendor, lineId: e.target.value })} placeholder="例：@lineid" />
                         </div>
                         <LocationField label="地址" value={currentVendor.address} onChange={e => setCurrentVendor({ ...currentVendor, address: e.target.value })} />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
