@@ -140,7 +140,12 @@ export const MOCK_DB = {
         { id: "v-1", name: "大師兄精緻木工坊", category: "工程工班", tradeType: "木工", contactPerson: "王大哥", phone: "0912-345-678", address: "新北市板橋區文化路一段...", status: "長期合作", rating: 4.9, lastProject: "信義區林公館", tags: ["配合度高", "手工細緻"] },
         { id: "v-2", name: "永亮專業水電", category: "工程工班", tradeType: "水電", contactPerson: "張師傅", phone: "0922-333-444", address: "新店區...", status: "合作中", rating: 4.5, lastProject: "南港軟體園區", tags: ["配線整齊"] },
         { id: "v-3", name: "佳佳油漆", category: "工程工班", tradeType: "油漆", contactPerson: "李老闆", phone: "0911-222-333", address: "台北市松山區...", status: "觀察中", rating: 3.8, lastProject: "內湖張公館", tags: ["價格便宜"] },
-        { id: "v-4", name: "美居家飾", category: "建材供應", tradeType: "軟裝", contactPerson: "Amy", phone: "02-2345-6789", address: "台北市內湖區...", status: "長期合作", rating: 4.8, lastProject: "大安森林公園", tags: ["品項多"] }
+        { id: "v-4", name: "美居家飾", category: "建材供應", tradeType: "軟裝", contactPerson: "Amy", phone: "02-2345-6789", address: "台北市內湖區...", status: "長期合作", rating: 4.8, lastProject: "大安森林公園", tags: ["品項多"] },
+        // 新增廠商以支援營建物料計算器
+        { id: "v-5", name: "強固混凝土", category: "建材供應", tradeType: "混凝土", contactPerson: "陳經理", phone: "02-2600-8888", address: "林口工三區", status: "合作中", rating: 4.7, lastProject: "大安森林公園", tags: ["品質穩定"] },
+        { id: "v-6", name: "高力專業泵浦", category: "工程工班", tradeType: "泵浦", contactPerson: "阿力", phone: "0955-666-777", address: "五股工業區", status: "長期合作", rating: 4.6, lastProject: "大安森林公園", tags: ["配合度高"] },
+        { id: "v-7", name: "建宏建材行", category: "建材供應", tradeType: "水泥,磚,磁磚,砂", contactPerson: "王老闆", phone: "02-2700-1234", address: "台北市文山區", status: "長期合作", rating: 4.8, lastProject: "信義區林公館", tags: ["送貨快"] },
+        { id: "v-8", name: "冠軍磁磚經銷", category: "建材供應", tradeType: "磁磚", contactPerson: "張小姐", phone: "02-8787-9999", address: "台北市內湖區", status: "合作中", rating: 4.9, lastProject: "南港辦公室", tags: ["樣式多"] }
     ],
     inventory: [
         { id: "i-1", name: "Panasonic 開關", spec: "PN-001", category: "電氣", quantity: 50, unit: "組", safeStock: 10, location: "A-01", status: "充足" },
