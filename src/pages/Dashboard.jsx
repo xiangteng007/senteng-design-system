@@ -5,7 +5,7 @@ import { WidgetDailySchedule, WidgetMemo, WidgetOverviewStats, WidgetRecentActiv
 
 const Dashboard = ({ events, finance, projects, clients }) => {
     // Check if user has name, otherwise default
-    const userName = "Alex";
+    const userName = "打工人";
     const dateStr = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const [widgets, setWidgets] = useState([
