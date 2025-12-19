@@ -2197,12 +2197,12 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
 
     const renderCalculator = () => {
         switch (activeTab) {
-            case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w) => addRecord('結構工程', s, l, v, u, w)} />;
-            case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w) => addRecord('泥作工程', s, l, v, u, w)} />;
-            case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w) => addRecord('磁磚工程', s, l, v, u, w)} />;
-            case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w) => addRecord('裝修工程', s, l, v, u, w)} />;
-            case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w) => addRecord('建築概估', s, l, v, u, w)} />;
-            default: return <StructureCalculator onAddRecord={(s, l, v, u, w) => addRecord('結構工程', s, l, v, u, w)} />;
+            case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('泥作工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('磁磚工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('裝修工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w, c) => addRecord('建築概估', s, l, v, u, w, c)} />;
+            default: return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
         }
     };
 
