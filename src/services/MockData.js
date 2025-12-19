@@ -8,13 +8,14 @@ export const MOCK_DB = {
             source: "網路廣告",
             phone: "0912-345-678",
             email: "lin@example.com",
+            lineId: "@linxr888",
             address: "台北市信義區...",
+            budget: "300-500萬",
             driveFolder: "https://drive.google.com/drive/folders/mock-lin",
             customFields: [
                 { label: "房屋類型", value: "電梯大樓" },
                 { label: "風格偏好", value: "現代簡約" },
                 { label: "家庭成員", value: "夫妻+1子" },
-                { label: "預算範圍", value: "300-500萬" },
                 { label: "備註", value: "喜歡大理石，主臥需有更衣室。" }
             ],
             lastContact: "2025-12-06"
@@ -26,7 +27,9 @@ export const MOCK_DB = {
             source: "朋友介紹",
             phone: "0922-333-444",
             email: "chen@example.com",
+            lineId: "chen_design",
             address: "台北市大安區...",
+            budget: "200-300萬",
             driveFolder: "https://drive.google.com/drive/folders/mock-chen",
             customFields: [
                 { label: "房屋類型", value: "電梯大樓" },
@@ -36,6 +39,7 @@ export const MOCK_DB = {
             lastContact: "2025-12-07"
         }
     ],
+
     projects: [
         {
             id: "p-1", code: "P-23001", name: "信義區林公館", type: "翻修", status: "施工中", progress: 65, dueDate: "2025-03-15", clientName: "林先生", budget: 350, location: "台北市信義區松智路1號",
