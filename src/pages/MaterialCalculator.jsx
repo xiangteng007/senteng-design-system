@@ -329,9 +329,14 @@ const StructureCalculator = ({ onAddRecord, vendors = [] }) => {
     const [rebarCount, setRebarCount] = useState('');
     const [rebarWastage, setRebarWastage] = useState(DEFAULT_WASTAGE.rebar);
     const [rebarCustomWastage, setRebarCustomWastage] = useState(false);
+    const [rebarCost, setRebarCost] = useState(null);
+
+    // 模板計算
+    const [formworkArea, setFormworkArea] = useState('');
     const [formworkRatio, setFormworkRatio] = useState('2.2');
     const [formworkWastage, setFormworkWastage] = useState(DEFAULT_WASTAGE.formwork);
     const [formworkCustomWastage, setFormworkCustomWastage] = useState(false);
+    const [formworkCost, setFormworkCost] = useState(null);
 
     // 計算每列混凝土體積
     const concreteRowResults = concreteRows.map(row => {
