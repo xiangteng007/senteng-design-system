@@ -219,7 +219,7 @@ const ResultDisplay = ({ label, value, unit, wastageValue, showWastage = true, o
 };
 
 // 成本輸入組件
-const CostInput = ({ label, quantity, unit, vendors = [], onChange, placeholder = {} }) => {
+const CostInput = ({ label, quantity, unit, unitLabel, vendors = [], onChange, placeholder = {} }) => {
     const [selectedVendor, setSelectedVendor] = useState('');
     const [spec, setSpec] = useState('');
     const [price, setPrice] = useState('');
@@ -272,7 +272,7 @@ const CostInput = ({ label, quantity, unit, vendors = [], onChange, placeholder 
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">單價 ({unit ? `元/${unit}` : '元'})</label>
+                    <label className="block text-xs text-gray-500 mb-1">單價 ({unitLabel || (unit ? `元/${unit}` : '元')})</label>
                     <input
                         type="number"
                         value={price}
@@ -1920,7 +1920,8 @@ const FinishCalculator = ({ onAddRecord, vendors = [] }) => {
                     <CostInput
                         label="油漆"
                         quantity={totalPaintWithWastage}
-                        unit="加侖"
+                        unit="坪"
+                        unitLabel="工帶料/坪"
                         vendors={vendors.filter(v => v.category === '建材供應' || v.tradeType?.includes('油漆'))}
                         onChange={setPaintCost}
                         placeholder={{ spec: '例：乳膠漆' }}
@@ -2165,7 +2166,7 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
         { id: 'structure', icon: Building2, label: '結構工程' },
         { id: 'masonry', icon: Layers, label: '泥作工程' },
         { id: 'tile', icon: Grid3X3, label: '磁磚工程' },
-        { id: 'finish', icon: Paintbrush, label: '裝修工程' },
+        { id: 'finish', icon: Paintbrush, label: '塗料工程' },
         { id: 'estimate', icon: BarChart3, label: '建築概估' },
     ];
 
@@ -2241,7 +2242,7 @@ export const MaterialCalculator = ({ addToast, vendors = [] }) => {
             case 'structure': return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'masonry': return <MasonryCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('泥作工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'tile': return <TileCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('磁磚工程', s, l, v, u, w, c)} vendors={vendors} />;
-            case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('裝修工程', s, l, v, u, w, c)} vendors={vendors} />;
+            case 'finish': return <FinishCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('塗料工程', s, l, v, u, w, c)} vendors={vendors} />;
             case 'estimate': return <BuildingEstimator onAddRecord={(s, l, v, u, w, c) => addRecord('建築概估', s, l, v, u, w, c)} />;
             default: return <StructureCalculator onAddRecord={(s, l, v, u, w, c) => addRecord('結構工程', s, l, v, u, w, c)} vendors={vendors} />;
         }
