@@ -535,35 +535,86 @@ const StructureCalculator = ({ onAddRecord }) => {
     );
 };
 
-// 2️⃣ 泥作工程計算器
+// 2️⃣ 泥作工程計算器 (支援多列輸入)
 const MasonryCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('mortar');
 
-    // 砂漿計算
-    const [mortarArea, setMortarArea] = useState('');
-    const [mortarThickness, setMortarThickness] = useState('2.5');
+    // 打底砂漿 - 多列支援
+    const [mortarRows, setMortarRows] = useState([
+        { id: 1, name: '', area: '', thickness: '2.5' }
+    ]);
     const [mortarWastage, setMortarWastage] = useState(DEFAULT_WASTAGE.cement);
     const [mortarCustomWastage, setMortarCustomWastage] = useState(false);
 
-    // 紅磚計算
-    const [brickArea, setBrickArea] = useState('');
-    const [brickWall, setBrickWall] = useState('24');
+    // 紅磚 - 多列支援
+    const [brickRows, setBrickRows] = useState([
+        { id: 1, name: '', area: '', wallType: '24' }
+    ]);
     const [brickWastage, setBrickWastage] = useState(DEFAULT_WASTAGE.brick);
     const [brickCustomWastage, setBrickCustomWastage] = useState(false);
 
     // 快速估算
     const [quickArea, setQuickArea] = useState('');
 
-    // 計算結果 - 砂漿 (2.5cm: 水泥10.6kg/m², 砂42.8kg/m²)
-    const thicknessRatio = parseFloat(mortarThickness) / 2.5;
-    const cementAmount = (parseFloat(mortarArea) || 0) * 10.6 * thicknessRatio;
-    const sandAmount = (parseFloat(mortarArea) || 0) * 42.8 * thicknessRatio;
-    const cementWithWastage = applyWastage(cementAmount, mortarCustomWastage ? mortarWastage : DEFAULT_WASTAGE.cement);
-    const sandWithWastage = applyWastage(sandAmount, mortarCustomWastage ? mortarWastage : DEFAULT_WASTAGE.sand);
+    // 計算每列砂漿結果
+    const mortarRowResults = mortarRows.map(row => {
+        const thicknessRatio = parseFloat(row.thickness) / 2.5;
+        const area = parseFloat(row.area) || 0;
+        const cement = area * 10.6 * thicknessRatio;
+        const sand = area * 42.8 * thicknessRatio;
+        return { ...row, cement, sand };
+    });
 
-    // 紅磚計算
-    const brickCount = (parseFloat(brickArea) || 0) * (BRICK_PER_SQM[brickWall]?.count || 128);
-    const brickWithWastage = applyWastage(brickCount, brickCustomWastage ? brickWastage : DEFAULT_WASTAGE.brick);
+    // 總計砂漿
+    const totalCement = mortarRowResults.reduce((sum, row) => sum + row.cement, 0);
+    const totalSand = mortarRowResults.reduce((sum, row) => sum + row.sand, 0);
+    const currentMortarWastage = mortarCustomWastage ? mortarWastage : DEFAULT_WASTAGE.cement;
+    const totalCementWithWastage = applyWastage(totalCement, currentMortarWastage);
+    const totalSandWithWastage = applyWastage(totalSand, currentMortarWastage);
+
+    // 砂漿列操作
+    const addMortarRow = () => {
+        const newId = Math.max(...mortarRows.map(r => r.id), 0) + 1;
+        setMortarRows([...mortarRows, { id: newId, name: '', area: '', thickness: '2.5' }]);
+    };
+    const removeMortarRow = (id) => {
+        if (mortarRows.length <= 1) return;
+        setMortarRows(mortarRows.filter(row => row.id !== id));
+    };
+    const updateMortarRow = (id, field, value) => {
+        setMortarRows(mortarRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearMortarRows = () => {
+        setMortarRows([{ id: 1, name: '', area: '', thickness: '2.5' }]);
+    };
+
+    // 計算每列紅磚結果
+    const brickRowResults = brickRows.map(row => {
+        const area = parseFloat(row.area) || 0;
+        const count = area * (BRICK_PER_SQM[row.wallType]?.count || 128);
+        return { ...row, count };
+    });
+
+    // 總計紅磚
+    const totalBricks = brickRowResults.reduce((sum, row) => sum + row.count, 0);
+    const currentBrickWastage = brickCustomWastage ? brickWastage : DEFAULT_WASTAGE.brick;
+    const totalBricksWithWastage = applyWastage(totalBricks, currentBrickWastage);
+
+    // 紅磚列操作
+    const addBrickRow = () => {
+        const newId = Math.max(...brickRows.map(r => r.id), 0) + 1;
+        setBrickRows([...brickRows, { id: newId, name: '', area: '', wallType: '24' }]);
+    };
+    const removeBrickRow = (id) => {
+        if (brickRows.length <= 1) return;
+        setBrickRows(brickRows.filter(row => row.id !== id));
+    };
+    const updateBrickRow = (id, field, value) => {
+        setBrickRows(brickRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearBrickRows = () => {
+        setBrickRows([{ id: 1, name: '', area: '', wallType: '24' }]);
+    };
 
     // 快速估算
     const quickCement = (parseFloat(quickArea) || 0) * 0.4;
@@ -588,27 +639,105 @@ const MasonryCalculator = ({ onAddRecord }) => {
                 ))}
             </div>
 
+            {/* 打底砂漿 - 多列模式 */}
             {calcType === 'mortar' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        配比 1:3 | 基準: 2.5cm厚 → 水泥 10.6kg/m², 砂 42.8kg/m²
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            配比 1:3 | 基準: 2.5cm厚 → 水泥 10.6kg/m², 砂 42.8kg/m²
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{mortarRows.length} 列</span>
+                            <button
+                                onClick={() => mortarRows.length > 1 && removeMortarRow(mortarRows[mortarRows.length - 1].id)}
+                                disabled={mortarRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button
+                                onClick={addMortarRow}
+                                className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors"
+                            >
+                                <Plus size={16} />
+                            </button>
+                            {mortarRows.length > 1 && (
+                                <button onClick={clearMortarRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>
+                            )}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="施作面積" value={mortarArea} onChange={setMortarArea} unit="m²" placeholder="0" />
-                        <SelectField
-                            label="打底厚度"
-                            value={mortarThickness}
-                            onChange={setMortarThickness}
-                            options={[
-                                { value: '1.5', label: '1.5 cm (牆面)' },
-                                { value: '2.0', label: '2.0 cm' },
-                                { value: '2.5', label: '2.5 cm (標準)' },
-                                { value: '3.0', label: '3.0 cm (地坪)' },
-                                { value: '4.0', label: '4.0 cm (地坪加厚)' },
-                            ]}
-                        />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {mortarRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input
+                                            type="text"
+                                            value={row.name}
+                                            onChange={(e) => updateMortarRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">施作面積</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={row.area}
+                                                onChange={(e) => updateMortarRow(row.id, 'area', e.target.value)}
+                                                placeholder="0"
+                                                min="0"
+                                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">厚度</label>
+                                        <select
+                                            value={row.thickness}
+                                            onChange={(e) => updateMortarRow(row.id, 'thickness', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500"
+                                        >
+                                            <option value="1.5">1.5cm</option>
+                                            <option value="2.0">2.0cm</option>
+                                            <option value="2.5">2.5cm</option>
+                                            <option value="3.0">3.0cm</option>
+                                            <option value="4.0">4.0cm</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-10 sm:col-span-3 flex items-center gap-2">
+                                        <div className="flex-1 text-xs">
+                                            <span className="text-gray-500">水泥:</span> <span className="font-bold text-orange-600">{formatNumber(mortarRowResults[index].cement, 1)}kg</span>
+                                            <span className="text-gray-500 ml-2">砂:</span> <span className="font-bold text-orange-600">{formatNumber(mortarRowResults[index].sand, 1)}kg</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button
+                                            onClick={() => removeMortarRow(row.id)}
+                                            disabled={mortarRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
+
+                    <button
+                        onClick={addMortarRow}
+                        className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                        <Plus size={16} />
+                        +增加新欄位
+                    </button>
+
                     <WastageControl
                         wastage={mortarWastage}
                         setWastage={setMortarWastage}
@@ -616,28 +745,141 @@ const MasonryCalculator = ({ onAddRecord }) => {
                         useCustom={mortarCustomWastage}
                         setUseCustom={setMortarCustomWastage}
                     />
+
                     <div className="grid grid-cols-2 gap-3">
-                        <ResultDisplay label="水泥用量" value={cementAmount} unit="kg" wastageValue={cementWithWastage} onAddRecord={onAddRecord} subType="打底砂漿" />
-                        <ResultDisplay label="砂用量" value={sandAmount} unit="kg" wastageValue={sandWithWastage} onAddRecord={onAddRecord} subType="打底砂漿" />
+                        <ResultDisplay
+                            label={`水泥用量 (共 ${mortarRowResults.filter(r => r.cement > 0).length} 項)`}
+                            value={totalCement}
+                            unit="kg"
+                            wastageValue={totalCementWithWastage}
+                            onAddRecord={onAddRecord}
+                            subType="打底砂漿"
+                        />
+                        <ResultDisplay
+                            label={`砂用量 (共 ${mortarRowResults.filter(r => r.sand > 0).length} 項)`}
+                            value={totalSand}
+                            unit="kg"
+                            wastageValue={totalSandWithWastage}
+                            onAddRecord={onAddRecord}
+                            subType="打底砂漿"
+                        />
                     </div>
+
+                    {mortarRowResults.filter(r => r.cement > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {mortarRowResults.filter(r => r.cement > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}m² × {row.thickness}cm)</span>
+                                        <span className="font-medium">水泥 {formatNumber(row.cement, 1)}kg, 砂 {formatNumber(row.sand, 1)}kg</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
+            {/* 紅磚用量 - 多列模式 */}
             {calcType === 'brick' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        12牆=64塊/m², 18牆=96塊/m², 24牆=128塊/m², 37牆=192塊/m²
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            12牆=64塊/m², 18牆=96塊/m², 24牆=128塊/m², 37牆=192塊/m²
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{brickRows.length} 列</span>
+                            <button
+                                onClick={() => brickRows.length > 1 && removeBrickRow(brickRows[brickRows.length - 1].id)}
+                                disabled={brickRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button
+                                onClick={addBrickRow}
+                                className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors"
+                            >
+                                <Plus size={16} />
+                            </button>
+                            {brickRows.length > 1 && (
+                                <button onClick={clearBrickRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>
+                            )}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="牆面面積" value={brickArea} onChange={setBrickArea} unit="m²" placeholder="0" />
-                        <SelectField
-                            label="牆厚"
-                            value={brickWall}
-                            onChange={setBrickWall}
-                            options={Object.entries(BRICK_PER_SQM).map(([k, v]) => ({ value: k, label: v.label }))}
-                        />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {brickRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input
+                                            type="text"
+                                            value={row.name}
+                                            onChange={(e) => updateBrickRow(row.id, 'name', e.target.value)}
+                                            placeholder={`牆面 ${index + 1}`}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">牆面面積</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={row.area}
+                                                onChange={(e) => updateBrickRow(row.id, 'area', e.target.value)}
+                                                placeholder="0"
+                                                min="0"
+                                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">牆厚</label>
+                                        <select
+                                            value={row.wallType}
+                                            onChange={(e) => updateBrickRow(row.id, 'wallType', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500"
+                                        >
+                                            {Object.entries(BRICK_PER_SQM).map(([k, v]) => (
+                                                <option key={k} value={k}>{v.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-10 sm:col-span-3 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">數量</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {brickRowResults[index].count > 0 ? `${formatNumber(brickRowResults[index].count, 0)} 塊` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button
+                                            onClick={() => removeBrickRow(row.id)}
+                                            disabled={brickRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
+
+                    <button
+                        onClick={addBrickRow}
+                        className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                        <Plus size={16} />
+                        +增加新欄位
+                    </button>
+
                     <WastageControl
                         wastage={brickWastage}
                         setWastage={setBrickWastage}
@@ -645,7 +887,29 @@ const MasonryCalculator = ({ onAddRecord }) => {
                         useCustom={brickCustomWastage}
                         setUseCustom={setBrickCustomWastage}
                     />
-                    <ResultDisplay label="紅磚數量" value={brickCount} unit="塊" wastageValue={brickWithWastage} onAddRecord={onAddRecord} subType="紅磚" />
+
+                    <ResultDisplay
+                        label={`紅磚數量 (共 ${brickRowResults.filter(r => r.count > 0).length} 項)`}
+                        value={totalBricks}
+                        unit="塊"
+                        wastageValue={totalBricksWithWastage}
+                        onAddRecord={onAddRecord}
+                        subType="紅磚"
+                    />
+
+                    {brickRowResults.filter(r => r.count > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {brickRowResults.filter(r => r.count > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `牆面 ${idx + 1}`} ({row.area}m² × {BRICK_PER_SQM[row.wallType]?.label})</span>
+                                        <span className="font-medium">{formatNumber(row.count, 0)} 塊</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -666,21 +930,24 @@ const MasonryCalculator = ({ onAddRecord }) => {
     );
 };
 
-// 3️⃣ 磁磚工程計算器
+
+// 3️⃣ 磁磚工程計算器 (支援多列輸入)
 const TileCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('tiles');
 
-    // 磁磚片數
-    const [tileArea, setTileArea] = useState('');
-    const [tileUnit, setTileUnit] = useState('ping');
-    const [tileSize, setTileSize] = useState(3); // 60x60 default
-    const [customTileL, setCustomTileL] = useState('');
-    const [customTileW, setCustomTileW] = useState('');
+    // 磁磚片數 - 多列支援
+    const [tileRows, setTileRows] = useState([
+        { id: 1, name: '', area: '', unit: 'ping', sizeIdx: 3 }
+    ]);
+    const [customTileL, setCustomTileL] = useState('60');
+    const [customTileW, setCustomTileW] = useState('60');
     const [tileWastage, setTileWastage] = useState(DEFAULT_WASTAGE.tile);
     const [tileCustomWastage, setTileCustomWastage] = useState(false);
 
-    // 填縫劑
-    const [groutArea, setGroutArea] = useState('');
+    // 填縫劑 - 多列支援
+    const [groutRows, setGroutRows] = useState([
+        { id: 1, name: '', area: '' }
+    ]);
     const [groutTileL, setGroutTileL] = useState('60');
     const [groutTileW, setGroutTileW] = useState('60');
     const [groutWidth, setGroutWidth] = useState('3');
@@ -688,35 +955,109 @@ const TileCalculator = ({ onAddRecord }) => {
     const [groutWastage, setGroutWastage] = useState(DEFAULT_WASTAGE.grout);
     const [groutCustomWastage, setGroutCustomWastage] = useState(false);
 
-    // 黏著劑
-    const [adhesiveArea, setAdhesiveArea] = useState('');
-    const [adhesiveTrowel, setAdhesiveTrowel] = useState('4');
+    // 黏著劑 - 多列支援
+    const [adhesiveRows, setAdhesiveRows] = useState([
+        { id: 1, name: '', area: '', trowel: '4' }
+    ]);
     const [adhesiveWastage, setAdhesiveWastage] = useState(DEFAULT_WASTAGE.adhesive);
     const [adhesiveCustomWastage, setAdhesiveCustomWastage] = useState(false);
 
-    // 計算磁磚片數
-    const selectedTile = TILE_SIZES[tileSize];
-    const tileL = selectedTile.l || parseFloat(customTileL) || 1;
-    const tileW = selectedTile.w || parseFloat(customTileW) || 1;
-    const areaSqm = tileUnit === 'ping' ? (parseFloat(tileArea) || 0) * 3.30579 : (parseFloat(tileArea) || 0);
-    const tilesPerSqm = 10000 / (tileL * tileW);
-    const tileCount = areaSqm * tilesPerSqm;
-    const tileCountPerPing = 32400 / (tileL * tileW);
-    const tileWithWastage = applyWastage(tileCount, tileCustomWastage ? tileWastage : DEFAULT_WASTAGE.tile);
+    // 計算每列磁磚結果
+    const tileRowResults = tileRows.map(row => {
+        const selectedTile = TILE_SIZES[row.sizeIdx] || TILE_SIZES[3];
+        const tileL = selectedTile.l || parseFloat(customTileL) || 60;
+        const tileW = selectedTile.w || parseFloat(customTileW) || 60;
+        const areaSqm = row.unit === 'ping' ? (parseFloat(row.area) || 0) * 3.30579 : (parseFloat(row.area) || 0);
+        const tilesPerSqm = 10000 / (tileL * tileW);
+        const count = areaSqm * tilesPerSqm;
+        return { ...row, count, tileL, tileW };
+    });
 
-    // 計算填縫劑 U = (L+W)/(L*W) * D * C * ρ (mm單位)
-    const L = parseFloat(groutTileL) * 10 || 600; // mm
+    // 總計磁磚
+    const totalTiles = tileRowResults.reduce((sum, row) => sum + row.count, 0);
+    const currentTileWastage = tileCustomWastage ? tileWastage : DEFAULT_WASTAGE.tile;
+    const totalTilesWithWastage = applyWastage(totalTiles, currentTileWastage);
+    const selectedTileForDisplay = TILE_SIZES[tileRows[0]?.sizeIdx || 3];
+    const displayTileL = selectedTileForDisplay.l || parseFloat(customTileL) || 60;
+    const displayTileW = selectedTileForDisplay.w || parseFloat(customTileW) || 60;
+    const tileCountPerPing = 32400 / (displayTileL * displayTileW);
+
+    // 磁磚列操作
+    const addTileRow = () => {
+        const newId = Math.max(...tileRows.map(r => r.id), 0) + 1;
+        setTileRows([...tileRows, { id: newId, name: '', area: '', unit: 'ping', sizeIdx: 3 }]);
+    };
+    const removeTileRow = (id) => {
+        if (tileRows.length <= 1) return;
+        setTileRows(tileRows.filter(row => row.id !== id));
+    };
+    const updateTileRow = (id, field, value) => {
+        setTileRows(tileRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearTileRows = () => {
+        setTileRows([{ id: 1, name: '', area: '', unit: 'ping', sizeIdx: 3 }]);
+    };
+
+    // 計算填縫劑結果
+    const L = parseFloat(groutTileL) * 10 || 600;
     const W = parseFloat(groutTileW) * 10 || 600;
     const D = parseFloat(groutWidth) || 3;
     const C = parseFloat(groutDepth) || 5;
     const groutPerSqm = ((L + W) / (L * W)) * D * C * 1.7;
-    const groutAmount = (parseFloat(groutArea) || 0) * groutPerSqm;
-    const groutWithWastage = applyWastage(groutAmount, groutCustomWastage ? groutWastage : DEFAULT_WASTAGE.grout);
 
-    // 計算黏著劑
-    const adhesivePerSqm = parseFloat(adhesiveTrowel) === 4 ? 2.5 : parseFloat(adhesiveTrowel) === 6 ? 6.25 : 4;
-    const adhesiveAmount = (parseFloat(adhesiveArea) || 0) * adhesivePerSqm;
-    const adhesiveWithWastage = applyWastage(adhesiveAmount, adhesiveCustomWastage ? adhesiveWastage : DEFAULT_WASTAGE.adhesive);
+    const groutRowResults = groutRows.map(row => {
+        const area = parseFloat(row.area) || 0;
+        const amount = area * groutPerSqm;
+        return { ...row, amount };
+    });
+
+    const totalGrout = groutRowResults.reduce((sum, row) => sum + row.amount, 0);
+    const currentGroutWastage = groutCustomWastage ? groutWastage : DEFAULT_WASTAGE.grout;
+    const totalGroutWithWastage = applyWastage(totalGrout, currentGroutWastage);
+
+    // 填縫劑列操作
+    const addGroutRow = () => {
+        const newId = Math.max(...groutRows.map(r => r.id), 0) + 1;
+        setGroutRows([...groutRows, { id: newId, name: '', area: '' }]);
+    };
+    const removeGroutRow = (id) => {
+        if (groutRows.length <= 1) return;
+        setGroutRows(groutRows.filter(row => row.id !== id));
+    };
+    const updateGroutRow = (id, field, value) => {
+        setGroutRows(groutRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearGroutRows = () => {
+        setGroutRows([{ id: 1, name: '', area: '' }]);
+    };
+
+    // 計算黏著劑結果
+    const adhesiveRowResults = adhesiveRows.map(row => {
+        const perSqm = parseFloat(row.trowel) === 4 ? 2.5 : parseFloat(row.trowel) === 6 ? 6.25 : 4;
+        const area = parseFloat(row.area) || 0;
+        const amount = area * perSqm;
+        return { ...row, amount };
+    });
+
+    const totalAdhesive = adhesiveRowResults.reduce((sum, row) => sum + row.amount, 0);
+    const currentAdhesiveWastage = adhesiveCustomWastage ? adhesiveWastage : DEFAULT_WASTAGE.adhesive;
+    const totalAdhesiveWithWastage = applyWastage(totalAdhesive, currentAdhesiveWastage);
+
+    // 黏著劑列操作
+    const addAdhesiveRow = () => {
+        const newId = Math.max(...adhesiveRows.map(r => r.id), 0) + 1;
+        setAdhesiveRows([...adhesiveRows, { id: newId, name: '', area: '', trowel: '4' }]);
+    };
+    const removeAdhesiveRow = (id) => {
+        if (adhesiveRows.length <= 1) return;
+        setAdhesiveRows(adhesiveRows.filter(row => row.id !== id));
+    };
+    const updateAdhesiveRow = (id, field, value) => {
+        setAdhesiveRows(adhesiveRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearAdhesiveRows = () => {
+        setAdhesiveRows([{ id: 1, name: '', area: '', trowel: '4' }]);
+    };
 
     return (
         <div className="space-y-4">
@@ -729,146 +1070,380 @@ const TileCalculator = ({ onAddRecord }) => {
                     <button
                         key={item.id}
                         onClick={() => setCalcType(item.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${calcType === item.id ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${calcType === item.id ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                     >
                         {item.label}
                     </button>
                 ))}
             </div>
 
+            {/* 磁磚片數 - 多列模式 */}
             {calcType === 'tiles' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 每坪片數 = 32400 ÷ (長cm × 寬cm)
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            公式: 每坪片數 = 32400 ÷ (長cm × 寬cm)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{tileRows.length} 列</span>
+                            <button
+                                onClick={() => tileRows.length > 1 && removeTileRow(tileRows[tileRows.length - 1].id)}
+                                disabled={tileRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button onClick={addTileRow} className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                <Plus size={16} />
+                            </button>
+                            {tileRows.length > 1 && <button onClick={clearTileRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <InputField label="施作面積" value={tileArea} onChange={setTileArea} unit={tileUnit === 'ping' ? '坪' : 'm²'} placeholder="0" />
-                        <SelectField
-                            label="面積單位"
-                            value={tileUnit}
-                            onChange={setTileUnit}
-                            options={[{ value: 'ping', label: '坪' }, { value: 'sqm', label: '平方公尺' }]}
-                        />
-                        <SelectField
-                            label="磁磚尺寸"
-                            value={tileSize}
-                            onChange={(v) => setTileSize(parseInt(v))}
-                            options={TILE_SIZES.map((t, i) => ({ value: i, label: t.label }))}
-                        />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {tileRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input type="text" value={row.name} onChange={(e) => updateTileRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                                    </div>
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">面積</label>
+                                        <div className="relative">
+                                            <input type="number" value={row.area} onChange={(e) => updateTileRow(row.id, 'area', e.target.value)}
+                                                placeholder="0" min="0" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8" />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">{row.unit === 'ping' ? '坪' : 'm²'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">單位</label>
+                                        <select value={row.unit} onChange={(e) => updateTileRow(row.id, 'unit', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            <option value="ping">坪</option>
+                                            <option value="sqm">m²</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-4 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">磁磚尺寸</label>
+                                        <select value={row.sizeIdx} onChange={(e) => updateTileRow(row.id, 'sizeIdx', parseInt(e.target.value))}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            {TILE_SIZES.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-6 sm:col-span-3 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">片數</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {tileRowResults[index].count > 0 ? `${formatNumber(tileRowResults[index].count, 0)} 片` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button onClick={() => removeTileRow(row.id)} disabled={tileRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    {tileSize === TILE_SIZES.length - 1 && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <InputField label="自訂長" value={customTileL} onChange={setCustomTileL} unit="cm" placeholder="60" />
-                            <InputField label="自訂寬" value={customTileW} onChange={setCustomTileW} unit="cm" placeholder="60" />
+
+                    <button onClick={addTileRow} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <Plus size={16} />+增加新欄位
+                    </button>
+
+                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                        60×60cm 磁磚每坪約 <strong>{formatNumber(tileCountPerPing, 1)}</strong> 片
+                    </div>
+
+                    <WastageControl wastage={tileWastage} setWastage={setTileWastage} defaultValue={DEFAULT_WASTAGE.tile} useCustom={tileCustomWastage} setUseCustom={setTileCustomWastage} />
+
+                    <ResultDisplay label={`磁磚片數 (共 ${tileRowResults.filter(r => r.count > 0).length} 項)`} value={totalTiles} unit="片" wastageValue={totalTilesWithWastage} onAddRecord={onAddRecord} subType="磁磚" />
+
+                    {tileRowResults.filter(r => r.count > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {tileRowResults.filter(r => r.count > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}{row.unit === 'ping' ? '坪' : 'm²'})</span>
+                                        <span className="font-medium">{formatNumber(row.count, 0)} 片</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
-                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                        此尺寸每坪約 <strong>{formatNumber(tileCountPerPing, 1)}</strong> 片
-                    </div>
-                    <WastageControl
-                        wastage={tileWastage}
-                        setWastage={setTileWastage}
-                        defaultValue={DEFAULT_WASTAGE.tile}
-                        useCustom={tileCustomWastage}
-                        setUseCustom={setTileCustomWastage}
-                    />
-                    <ResultDisplay label="磁磚片數" value={tileCount} unit="片" wastageValue={tileWithWastage} onAddRecord={onAddRecord} subType="磁磚" />
                 </div>
             )}
 
+            {/* 填縫劑 - 多列模式 */}
             {calcType === 'grout' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: U = (L+W)/(L×W) × 縫寬 × 縫深 × 1.7
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="施作面積" value={groutArea} onChange={setGroutArea} unit="m²" placeholder="0" />
-                        <div className="grid grid-cols-2 gap-2">
-                            <InputField label="磚長" value={groutTileL} onChange={setGroutTileL} unit="cm" />
-                            <InputField label="磚寬" value={groutTileW} onChange={setGroutTileW} unit="cm" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            公式: U = (L+W)/(L×W) × 縫寬 × 縫深 × 1.7
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{groutRows.length} 列</span>
+                            <button onClick={() => groutRows.length > 1 && removeGroutRow(groutRows[groutRows.length - 1].id)} disabled={groutRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button onClick={addGroutRow} className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                <Plus size={16} />
+                            </button>
+                            {groutRows.length > 1 && <button onClick={clearGroutRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>}
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+
+                    {/* 共用設定 */}
+                    <div className="grid grid-cols-4 gap-2 bg-blue-50 p-3 rounded-lg">
+                        <InputField label="磚長" value={groutTileL} onChange={setGroutTileL} unit="cm" />
+                        <InputField label="磚寬" value={groutTileW} onChange={setGroutTileW} unit="cm" />
                         <InputField label="縫寬" value={groutWidth} onChange={setGroutWidth} unit="mm" />
-                        <InputField label="縫深(磚厚)" value={groutDepth} onChange={setGroutDepth} unit="mm" />
+                        <InputField label="縫深" value={groutDepth} onChange={setGroutDepth} unit="mm" />
                     </div>
+
                     <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
                         此規格每平方公尺約 <strong>{formatNumber(groutPerSqm, 2)}</strong> kg
                     </div>
-                    <WastageControl
-                        wastage={groutWastage}
-                        setWastage={setGroutWastage}
-                        defaultValue={DEFAULT_WASTAGE.grout}
-                        useCustom={groutCustomWastage}
-                        setUseCustom={setGroutCustomWastage}
-                    />
-                    <ResultDisplay label="填縫劑用量" value={groutAmount} unit="kg" wastageValue={groutWithWastage} onAddRecord={onAddRecord} subType="填縫劑" />
+
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {groutRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-4">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input type="text" value={row.name} onChange={(e) => updateGroutRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">施作面積</label>
+                                        <div className="relative">
+                                            <input type="number" value={row.area} onChange={(e) => updateGroutRow(row.id, 'area', e.target.value)}
+                                                placeholder="0" min="0" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8" />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-4 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">填縫劑用量</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {groutRowResults[index].amount > 0 ? `${formatNumber(groutRowResults[index].amount, 2)} kg` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button onClick={() => removeGroutRow(row.id)} disabled={groutRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={addGroutRow} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <Plus size={16} />+增加新欄位
+                    </button>
+
+                    <WastageControl wastage={groutWastage} setWastage={setGroutWastage} defaultValue={DEFAULT_WASTAGE.grout} useCustom={groutCustomWastage} setUseCustom={setGroutCustomWastage} />
+
+                    <ResultDisplay label={`填縫劑用量 (共 ${groutRowResults.filter(r => r.amount > 0).length} 項)`} value={totalGrout} unit="kg" wastageValue={totalGroutWithWastage} onAddRecord={onAddRecord} subType="填縫劑" />
+
+                    {groutRowResults.filter(r => r.amount > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {groutRowResults.filter(r => r.amount > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}m²)</span>
+                                        <span className="font-medium">{formatNumber(row.amount, 2)} kg</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
+            {/* 黏著劑 - 多列模式 */}
             {calcType === 'adhesive' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        4mm鏝刀 ≈ 2.5kg/m², 6mm鏝刀 ≈ 6.25kg/m²
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            4mm鏝刀 ≈ 2.5kg/m², 6mm鏝刀 ≈ 6.25kg/m²
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{adhesiveRows.length} 列</span>
+                            <button onClick={() => adhesiveRows.length > 1 && removeAdhesiveRow(adhesiveRows[adhesiveRows.length - 1].id)} disabled={adhesiveRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button onClick={addAdhesiveRow} className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                <Plus size={16} />
+                            </button>
+                            {adhesiveRows.length > 1 && <button onClick={clearAdhesiveRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="施作面積" value={adhesiveArea} onChange={setAdhesiveArea} unit="m²" placeholder="0" />
-                        <SelectField
-                            label="鏝刀規格"
-                            value={adhesiveTrowel}
-                            onChange={setAdhesiveTrowel}
-                            options={[
-                                { value: '4', label: '4mm (一般外牆磚)' },
-                                { value: '6', label: '6mm (大型磁磚/石英磚)' },
-                            ]}
-                        />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {adhesiveRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input type="text" value={row.name} onChange={(e) => updateAdhesiveRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">施作面積</label>
+                                        <div className="relative">
+                                            <input type="number" value={row.area} onChange={(e) => updateAdhesiveRow(row.id, 'area', e.target.value)}
+                                                placeholder="0" min="0" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8" />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">鏝刀規格</label>
+                                        <select value={row.trowel} onChange={(e) => updateAdhesiveRow(row.id, 'trowel', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            <option value="4">4mm</option>
+                                            <option value="6">6mm</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-10 sm:col-span-3 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">黏著劑用量</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {adhesiveRowResults[index].amount > 0 ? `${formatNumber(adhesiveRowResults[index].amount, 2)} kg` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button onClick={() => removeAdhesiveRow(row.id)} disabled={adhesiveRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <WastageControl
-                        wastage={adhesiveWastage}
-                        setWastage={setAdhesiveWastage}
-                        defaultValue={DEFAULT_WASTAGE.adhesive}
-                        useCustom={adhesiveCustomWastage}
-                        setUseCustom={setAdhesiveCustomWastage}
-                    />
-                    <ResultDisplay label="黏著劑用量" value={adhesiveAmount} unit="kg" wastageValue={adhesiveWithWastage} onAddRecord={onAddRecord} subType="黏著劑" />
+
+                    <button onClick={addAdhesiveRow} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <Plus size={16} />+增加新欄位
+                    </button>
+
+                    <WastageControl wastage={adhesiveWastage} setWastage={setAdhesiveWastage} defaultValue={DEFAULT_WASTAGE.adhesive} useCustom={adhesiveCustomWastage} setUseCustom={setAdhesiveCustomWastage} />
+
+                    <ResultDisplay label={`黏著劑用量 (共 ${adhesiveRowResults.filter(r => r.amount > 0).length} 項)`} value={totalAdhesive} unit="kg" wastageValue={totalAdhesiveWithWastage} onAddRecord={onAddRecord} subType="黏著劑" />
+
+                    {adhesiveRowResults.filter(r => r.amount > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {adhesiveRowResults.filter(r => r.amount > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}m² × {row.trowel}mm鏝刀)</span>
+                                        <span className="font-medium">{formatNumber(row.amount, 2)} kg</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 };
 
-// 4️⃣ 裝修工程計算器  
+
+// 4️⃣ 裝修工程計算器 (支援多列輸入)
 const FinishCalculator = ({ onAddRecord }) => {
     const [calcType, setCalcType] = useState('paint');
 
-    // 油漆計算
-    const [paintArea, setPaintArea] = useState('');
-    const [paintUnit, setPaintUnit] = useState('sqm');
+    // 油漆計算 - 多列支援
+    const [paintRows, setPaintRows] = useState([
+        { id: 1, name: '', area: '', unit: 'sqm' }
+    ]);
     const [paintWastage, setPaintWastage] = useState(DEFAULT_WASTAGE.paint);
     const [paintCustomWastage, setPaintCustomWastage] = useState(false);
 
-    // 批土計算
-    const [puttyArea, setPuttyArea] = useState('');
+    // 批土計算 - 多列支援
+    const [puttyRows, setPuttyRows] = useState([
+        { id: 1, name: '', area: '' }
+    ]);
     const [puttyWastage, setPuttyWastage] = useState(DEFAULT_WASTAGE.putty);
     const [puttyCustomWastage, setPuttyCustomWastage] = useState(false);
 
     // 塗刷面積估算
     const [buildingArea, setBuildingArea] = useState('');
 
-    // 計算油漆
-    const paintAreaSqm = paintUnit === 'ping' ? (parseFloat(paintArea) || 0) * 3.30579 : (parseFloat(paintArea) || 0);
-    const paintGallons = paintAreaSqm / 3.30579 * 0.5; // 每坪0.5加侖
-    const paintWithWastage = applyWastage(paintGallons, paintCustomWastage ? paintWastage : DEFAULT_WASTAGE.paint);
+    // 計算每列油漆結果
+    const paintRowResults = paintRows.map(row => {
+        const areaSqm = row.unit === 'ping' ? (parseFloat(row.area) || 0) * 3.30579 : (parseFloat(row.area) || 0);
+        const gallons = areaSqm / 3.30579 * 0.5;
+        return { ...row, gallons };
+    });
 
-    // 計算批土
-    const puttyAmount = (parseFloat(puttyArea) || 0) * 0.35;
-    const puttyWithWastage = applyWastage(puttyAmount, puttyCustomWastage ? puttyWastage : DEFAULT_WASTAGE.putty);
+    // 總計油漆
+    const totalPaintGallons = paintRowResults.reduce((sum, row) => sum + row.gallons, 0);
+    const currentPaintWastage = paintCustomWastage ? paintWastage : DEFAULT_WASTAGE.paint;
+    const totalPaintWithWastage = applyWastage(totalPaintGallons, currentPaintWastage);
 
-    // 塗刷面積估算 (建築面積×3)
+    // 油漆列操作
+    const addPaintRow = () => {
+        const newId = Math.max(...paintRows.map(r => r.id), 0) + 1;
+        setPaintRows([...paintRows, { id: newId, name: '', area: '', unit: 'sqm' }]);
+    };
+    const removePaintRow = (id) => {
+        if (paintRows.length <= 1) return;
+        setPaintRows(paintRows.filter(row => row.id !== id));
+    };
+    const updatePaintRow = (id, field, value) => {
+        setPaintRows(paintRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearPaintRows = () => {
+        setPaintRows([{ id: 1, name: '', area: '', unit: 'sqm' }]);
+    };
+
+    // 計算每列批土結果
+    const puttyRowResults = puttyRows.map(row => {
+        const area = parseFloat(row.area) || 0;
+        const amount = area * 0.35;
+        return { ...row, amount };
+    });
+
+    // 總計批土
+    const totalPutty = puttyRowResults.reduce((sum, row) => sum + row.amount, 0);
+    const currentPuttyWastage = puttyCustomWastage ? puttyWastage : DEFAULT_WASTAGE.putty;
+    const totalPuttyWithWastage = applyWastage(totalPutty, currentPuttyWastage);
+
+    // 批土列操作
+    const addPuttyRow = () => {
+        const newId = Math.max(...puttyRows.map(r => r.id), 0) + 1;
+        setPuttyRows([...puttyRows, { id: newId, name: '', area: '' }]);
+    };
+    const removePuttyRow = (id) => {
+        if (puttyRows.length <= 1) return;
+        setPuttyRows(puttyRows.filter(row => row.id !== id));
+    };
+    const updatePuttyRow = (id, field, value) => {
+        setPuttyRows(puttyRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+    const clearPuttyRows = () => {
+        setPuttyRows([{ id: 1, name: '', area: '' }]);
+    };
+
+    // 塗刷面積估算
     const estimatedPaintArea = (parseFloat(buildingArea) || 0) * 3;
 
     return (
@@ -882,55 +1457,180 @@ const FinishCalculator = ({ onAddRecord }) => {
                     <button
                         key={item.id}
                         onClick={() => setCalcType(item.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${calcType === item.id ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${calcType === item.id ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                     >
                         {item.label}
                     </button>
                 ))}
             </div>
 
+            {/* 油漆用量 - 多列模式 */}
             {calcType === 'paint' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 用量(加侖) ≈ 面積(坪) × 0.5
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            公式: 用量(加侖) ≈ 面積(坪) × 0.5
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{paintRows.length} 列</span>
+                            <button onClick={() => paintRows.length > 1 && removePaintRow(paintRows[paintRows.length - 1].id)} disabled={paintRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button onClick={addPaintRow} className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                <Plus size={16} />
+                            </button>
+                            {paintRows.length > 1 && <button onClick={clearPaintRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="塗刷面積" value={paintArea} onChange={setPaintArea} unit={paintUnit === 'ping' ? '坪' : 'm²'} placeholder="0" />
-                        <SelectField
-                            label="單位"
-                            value={paintUnit}
-                            onChange={setPaintUnit}
-                            options={[{ value: 'sqm', label: '平方公尺' }, { value: 'ping', label: '坪' }]}
-                        />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {paintRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input type="text" value={row.name} onChange={(e) => updatePaintRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">塗刷面積</label>
+                                        <div className="relative">
+                                            <input type="number" value={row.area} onChange={(e) => updatePaintRow(row.id, 'area', e.target.value)}
+                                                placeholder="0" min="0" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8" />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">{row.unit === 'ping' ? '坪' : 'm²'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-2">
+                                        <label className="block text-xs text-gray-500 mb-1">單位</label>
+                                        <select value={row.unit} onChange={(e) => updatePaintRow(row.id, 'unit', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-orange-500">
+                                            <option value="sqm">m²</option>
+                                            <option value="ping">坪</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-10 sm:col-span-3 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">油漆用量</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {paintRowResults[index].gallons > 0 ? `${formatNumber(paintRowResults[index].gallons, 2)} 加侖` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button onClick={() => removePaintRow(row.id)} disabled={paintRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <WastageControl
-                        wastage={paintWastage}
-                        setWastage={setPaintWastage}
-                        defaultValue={DEFAULT_WASTAGE.paint}
-                        useCustom={paintCustomWastage}
-                        setUseCustom={setPaintCustomWastage}
-                    />
-                    <ResultDisplay label="油漆用量" value={paintGallons} unit="加侖" wastageValue={paintWithWastage} onAddRecord={onAddRecord} subType="油漆" />
+
+                    <button onClick={addPaintRow} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <Plus size={16} />+增加新欄位
+                    </button>
+
+                    <WastageControl wastage={paintWastage} setWastage={setPaintWastage} defaultValue={DEFAULT_WASTAGE.paint} useCustom={paintCustomWastage} setUseCustom={setPaintCustomWastage} />
+
+                    <ResultDisplay label={`油漆用量 (共 ${paintRowResults.filter(r => r.gallons > 0).length} 項)`} value={totalPaintGallons} unit="加侖" wastageValue={totalPaintWithWastage} onAddRecord={onAddRecord} subType="油漆" />
+
+                    {paintRowResults.filter(r => r.gallons > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {paintRowResults.filter(r => r.gallons > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}{row.unit === 'ping' ? '坪' : 'm²'})</span>
+                                        <span className="font-medium">{formatNumber(row.gallons, 2)} 加侖</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
+            {/* 批土用量 - 多列模式 */}
             {calcType === 'putty' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Info size={16} />
-                        公式: 批土用量 = 建築面積 × 0.35
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Info size={16} />
+                            公式: 批土用量 = 建築面積 × 0.35
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{puttyRows.length} 列</span>
+                            <button onClick={() => puttyRows.length > 1 && removePuttyRow(puttyRows[puttyRows.length - 1].id)} disabled={puttyRows.length <= 1}
+                                className="w-7 h-7 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <span className="text-lg font-bold leading-none">−</span>
+                            </button>
+                            <button onClick={addPuttyRow} className="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition-colors">
+                                <Plus size={16} />
+                            </button>
+                            {puttyRows.length > 1 && <button onClick={clearPuttyRows} className="text-xs text-gray-500 hover:text-gray-700 ml-1">清空</button>}
+                        </div>
                     </div>
-                    <InputField label="建築面積" value={puttyArea} onChange={setPuttyArea} unit="m²" placeholder="0" />
-                    <WastageControl
-                        wastage={puttyWastage}
-                        setWastage={setPuttyWastage}
-                        defaultValue={DEFAULT_WASTAGE.putty}
-                        useCustom={puttyCustomWastage}
-                        setUseCustom={setPuttyCustomWastage}
-                    />
-                    <ResultDisplay label="批土用量" value={puttyAmount} unit="kg" wastageValue={puttyWithWastage} onAddRecord={onAddRecord} subType="批土" />
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {puttyRows.map((row, index) => (
+                            <div key={row.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="grid grid-cols-12 gap-2 items-end">
+                                    <div className="col-span-12 sm:col-span-4">
+                                        <label className="block text-xs text-gray-500 mb-1">名稱</label>
+                                        <input type="text" value={row.name} onChange={(e) => updatePuttyRow(row.id, 'name', e.target.value)}
+                                            placeholder={`區域 ${index + 1}`} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-3">
+                                        <label className="block text-xs text-gray-500 mb-1">建築面積</label>
+                                        <div className="relative">
+                                            <input type="number" value={row.area} onChange={(e) => updatePuttyRow(row.id, 'area', e.target.value)}
+                                                placeholder="0" min="0" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-8" />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-5 sm:col-span-4 flex items-center">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-500 mb-1">批土用量</label>
+                                            <div className="text-sm font-bold text-orange-600">
+                                                {puttyRowResults[index].amount > 0 ? `${formatNumber(puttyRowResults[index].amount, 2)} kg` : '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                                        <button onClick={() => removePuttyRow(row.id)} disabled={puttyRows.length <= 1}
+                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={addPuttyRow} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <Plus size={16} />+增加新欄位
+                    </button>
+
+                    <WastageControl wastage={puttyWastage} setWastage={setPuttyWastage} defaultValue={DEFAULT_WASTAGE.putty} useCustom={puttyCustomWastage} setUseCustom={setPuttyCustomWastage} />
+
+                    <ResultDisplay label={`批土用量 (共 ${puttyRowResults.filter(r => r.amount > 0).length} 項)`} value={totalPutty} unit="kg" wastageValue={totalPuttyWithWastage} onAddRecord={onAddRecord} subType="批土" />
+
+                    {puttyRowResults.filter(r => r.amount > 0).length > 1 && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                            <div className="font-medium text-gray-700 mb-2">各項明細:</div>
+                            <div className="space-y-1">
+                                {puttyRowResults.filter(r => r.amount > 0).map((row, idx) => (
+                                    <div key={row.id} className="flex justify-between text-gray-600">
+                                        <span>{row.name || `區域 ${idx + 1}`} ({row.area}m²)</span>
+                                        <span className="font-medium">{formatNumber(row.amount, 2)} kg</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -950,6 +1650,7 @@ const FinishCalculator = ({ onAddRecord }) => {
         </div>
     );
 };
+
 
 // 5️⃣ 建築概估計算器
 const BuildingEstimator = ({ onAddRecord }) => {
