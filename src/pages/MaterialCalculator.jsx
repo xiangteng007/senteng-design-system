@@ -1258,6 +1258,13 @@ const TileCalculator = ({ onAddRecord, vendors = [] }) => {
     const displayTileL = selectedTileForDisplay.l || parseFloat(customTileL) || 60;
     const displayTileW = selectedTileForDisplay.w || parseFloat(customTileW) || 60;
     const tileCountPerPing = 32400 / (displayTileL * displayTileW);
+    const [tileLaborCost, setTileLaborCost] = useState(null);
+
+    // 計算總坪數 (用於工資計算)
+    const totalAreaPing = tileRowResults.reduce((sum, row) => {
+        const area = parseFloat(row.area) || 0;
+        return sum + (row.unit === 'ping' ? area : area * 0.3025);
+    }, 0);
 
     // 磁磚列操作
     const addTileRow = () => {
@@ -1464,6 +1471,35 @@ const TileCalculator = ({ onAddRecord, vendors = [] }) => {
                         onChange={setTileCost}
                         placeholder={{ spec: '例：60x60cm 拋光石英磚' }}
                     />
+
+                    {/* 磁磚鋪貼工資 */}
+                    <div className="bg-orange-50 rounded-lg p-3 space-y-3 border border-orange-100 mt-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
+                            <span className="bg-orange-200 text-orange-700 p-1 rounded">
+                                <Layers size={14} />
+                            </span>
+                            磁磚鋪貼工資
+                        </div>
+
+                        <ResultDisplay
+                            label="鋪貼工資合計"
+                            value={tileLaborCost?.subtotal || 0}
+                            unit="元"
+                            showWastage={false}
+                            onAddRecord={(subType, label, value, unit) =>
+                                onAddRecord(subType, label, value, unit, value, tileLaborCost)}
+                            subType="鋪貼工資"
+                        />
+
+                        <CostInput
+                            label="施工"
+                            quantity={totalAreaPing}
+                            unit="坪"
+                            vendors={vendors.filter(v => v.category === '工程工班' && (v.tradeType?.includes('泥作') || v.tradeType?.includes('磁磚')))}
+                            onChange={setTileLaborCost}
+                            placeholder={{ spec: '例：60x60cm 貼工' }}
+                        />
+                    </div>
 
                     {tileRowResults.filter(r => r.count > 0).length > 1 && (
                         <div className="bg-gray-50 rounded-lg p-3 text-xs">
