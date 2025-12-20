@@ -41,7 +41,7 @@ const DEFAULT_MENU_ITEMS = [
 // localStorage key
 const MENU_ORDER_KEY = 'senteng_menu_order';
 
-// 可排序的側邊欄項目
+// 可排序的側邊欄項目 - 優化樣式
 const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
     const {
         attributes,
@@ -56,7 +56,7 @@ const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : undefined,
-        opacity: isDragging ? 0.8 : 1,
+        opacity: isDragging ? 0.9 : 1,
     };
 
     return (
@@ -64,33 +64,38 @@ const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
             ref={setNodeRef}
             style={style}
             className={`
-                flex items-center gap-1 rounded-2xl transition-all duration-300
-                ${isDragging ? 'shadow-lg bg-white' : ''}
+                flex items-center gap-0.5 rounded-xl transition-all duration-200 relative
+                ${isDragging ? 'shadow-elevated bg-white scale-[1.02]' : ''}
+                ${active ? '' : 'hover:bg-gray-50/80'}
             `}
         >
             {/* 拖曳把手 */}
             <button
                 {...attributes}
                 {...listeners}
-                className="p-2 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none"
+                className="p-2 text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none transition-colors"
                 title="拖曳排序"
             >
-                <GripVertical size={16} />
+                <GripVertical size={14} />
             </button>
 
             {/* 選單項目 */}
             <button
                 onClick={() => onClick(id)}
                 className={`
-                    flex-1 flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300
+                    flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative
                     ${active
-                        ? 'bg-morandi-text-accent text-white shadow-lg shadow-gray-200'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-morandi-text-accent'
+                        ? 'bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-soft'
+                        : 'text-gray-600 hover:text-gray-800'
                     }
                 `}
             >
-                <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-                <span className={`font-medium ${active ? 'font-bold' : ''}`}>{label}</span>
+                {/* Active indicator bar */}
+                {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white/30 rounded-full" />
+                )}
+                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
+                <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
             </button>
         </div>
     );
@@ -203,35 +208,47 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
-            {/* Sidebar - Responsive */}
+            {/* Sidebar - Premium Glass Design */}
             <aside className={`
-                w-72 bg-white/80 backdrop-blur-md border-r border-white/50 flex flex-col z-50 shadow-glass
+                w-72 glass-card-elevated border-r border-gray-100/50 flex flex-col z-50
                 fixed lg:relative h-full
-                transform transition-transform duration-300 ease-in-out
+                transform transition-all duration-300 ease-smooth
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
                 {/* Close button for mobile */}
                 <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="lg:hidden absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                    className="lg:hidden absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-colors"
                 >
-                    <X size={24} />
+                    <X size={22} />
                 </button>
 
-                <div className="p-8">
-                    <h1 className="text-xl font-bold flex items-center gap-3 text-morandi-text-primary tracking-wide">
-                        <div className="w-10 h-10 bg-morandi-text-accent rounded-xl flex items-center justify-center text-white font-serif text-lg shadow-lg">S</div>
-                        SENTENG.CO
-                    </h1>
+                {/* Logo Section - Enhanced */}
+                <div className="p-6 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600 rounded-xl blur-sm opacity-50 group-hover:opacity-70 transition-opacity" />
+                            <div className="relative w-11 h-11 bg-gradient-to-br from-gray-800 to-gray-700 rounded-xl flex items-center justify-center text-white font-semibold text-lg shadow-lg">
+                                S
+                            </div>
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-gray-800 tracking-tight">SENTENG</h1>
+                            <p className="text-[10px] text-gray-400 font-medium tracking-widest">DESIGN SYSTEM</p>
+                        </div>
+                    </div>
                 </div>
 
+                {/* Divider */}
+                <div className="mx-4 mb-3 divider-gradient" />
+
                 {/* 可排序選單 */}
-                <nav className="flex-1 px-2 space-y-1 overflow-y-auto custom-scrollbar">
+                <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto custom-scrollbar">
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
@@ -253,45 +270,58 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                     </DndContext>
                 </nav>
 
-                {/* 重設順序按鈕 + 版本號 */}
-                <div className="p-4 border-t border-gray-100">
+                {/* 重設順序按鈕 + 版本號 - Enhanced */}
+                <div className="p-4 pt-2 border-t border-gray-100/50 mt-auto">
                     {isOrderCustomized && (
                         <button
                             onClick={resetMenuOrder}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200 mb-3"
                         >
-                            <RotateCcw size={14} />
+                            <RotateCcw size={12} />
                             重設選單順序
                         </button>
                     )}
-                    <div className="text-xs text-gray-400 text-center">v3.1.0 Morandi Build</div>
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-[11px] text-gray-400 font-medium">v3.2.0 Premium</span>
+                    </div>
                 </div>
             </aside>
 
             <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-8 z-10">
+                {/* Header - Enhanced with subtle background */}
+                <header className="h-16 lg:h-18 flex items-center justify-between px-4 lg:px-8 bg-gradient-to-r from-transparent via-white/30 to-transparent">
                     {/* Mobile Menu Button */}
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
-                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100"
+                        className="lg:hidden p-2.5 text-gray-600 hover:text-gray-800 rounded-xl hover:bg-white/50 transition-all"
                     >
-                        <Menu size={24} />
+                        <Menu size={22} />
                     </button>
 
                     <div className="flex-1 lg:flex-none">
-                        {/* Breadcrumb or Title handled by page usually, but we show simple one here */}
+                        {/* Breadcrumb or Title handled by page usually */}
                     </div>
-                    <div className="flex items-center gap-2 lg:gap-4">
+
+                    <div className="flex items-center gap-3">
+                        {/* Notification Button - Enhanced */}
                         <button
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                            className="p-2 text-gray-400 hover:text-gray-600 bg-white rounded-full shadow-sm hover:shadow transition-all relative"
+                            className="relative p-2.5 text-gray-500 hover:text-gray-700 bg-white/80 hover:bg-white rounded-xl shadow-soft hover:shadow-card transition-all duration-200"
                         >
-                            <Bell size={20} />
+                            <Bell size={18} strokeWidth={1.8} />
                             {hasUpcomingEvents && (
-                                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-400 rounded-full border border-white animate-pulse"></span>
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse shadow-sm" />
                             )}
                         </button>
-                        <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center font-bold text-gray-600 text-sm lg:text-base">A</div>
+
+                        {/* User Avatar - Enhanced with gradient border */}
+                        <div className="relative group cursor-pointer">
+                            <div className="absolute -inset-0.5 bg-gradient-to-br from-gray-300 to-gray-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="relative w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full border-2 border-white shadow-soft flex items-center justify-center">
+                                <span className="font-semibold text-gray-600 text-sm lg:text-base">A</span>
+                            </div>
+                        </div>
                     </div>
                 </header>
 
@@ -300,7 +330,8 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                     onClose={() => setIsNotificationOpen(false)}
                 />
 
-                <div className="flex-1 overflow-auto p-4 lg:p-8 pt-0 scroll-smooth">
+                {/* Content Area - Enhanced padding and scrolling */}
+                <div className="flex-1 overflow-auto p-4 lg:p-8 pt-2 scroll-smooth">
                     <div className="max-w-7xl mx-auto h-full">
                         {children}
                     </div>

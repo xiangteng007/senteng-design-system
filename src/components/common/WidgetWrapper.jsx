@@ -26,23 +26,31 @@ export const WidgetWrapper = ({ widget, onResize, onDragStart, onDragEnter, onDr
             onDragEnter={onDragEnter}
             onDragEnd={onDragEnd}
             className={`
-        group relative bg-white rounded-3xl shadow-sm border border-gray-100 
-        transition-all duration-300 hover:shadow-lg hover:-translate-y-1
-        ${getGridSpan(size)} flex flex-col overflow-hidden animate-fade-in
-      `}
+                group relative bg-white rounded-2xl 
+                shadow-card hover:shadow-card-hover
+                border border-gray-100/80
+                transition-all duration-300 ease-smooth
+                hover:-translate-y-0.5
+                ${getGridSpan(size)} 
+                flex flex-col overflow-hidden animate-fade-in
+            `}
         >
-            <div className="flex items-center justify-between p-4 border-b border-gray-50 bg-gray-50/30">
-                <div className="flex items-center gap-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-700">
-                    <GripHorizontal size={16} />
-                    <h3 className="font-bold text-morandi-text-primary text-sm select-none">{title}</h3>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-transparent">
+                <div className="flex items-center gap-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors">
+                    <GripHorizontal size={14} strokeWidth={2} />
+                    <h3 className="font-semibold text-gray-700 text-sm select-none">{title}</h3>
                 </div>
                 <button
                     onClick={() => onResize(id, nextSize(size))}
-                    className="p-1.5 text-gray-400 hover:text-morandi-blue-600 hover:bg-morandi-blue-100 rounded-full transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                    title={size === 'L' ? '縮小' : '放大'}
                 >
-                    {size === 'L' ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    {size === 'L' ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                 </button>
             </div>
+
+            {/* Content */}
             <div className="flex-1 p-4 overflow-hidden flex flex-col relative">
                 {children}
             </div>
