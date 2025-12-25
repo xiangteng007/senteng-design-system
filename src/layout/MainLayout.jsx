@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar as CalendarIcon, Briefcase, Users, Wallet, HardHat, Package, Bell, LayoutDashboard, Image as ImageIcon, Menu, X, FileText, Ruler, Calculator, Building2, GripVertical, RotateCcw, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { NotificationPanel } from '../components/common/NotificationPanel';
 import { GoogleService } from '../services/GoogleService';
+import { useAuth } from '../context/AuthContext';
 
 // DnD Kit imports
 import {
@@ -102,10 +103,27 @@ const SortableSidebarItem = ({ id, icon: Icon, label, active, onClick }) => {
 };
 
 export const MainLayout = ({ activeTab, setActiveTab, children }) => {
+    const { user, role, allowedPages, signOut } = useAuth();
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [hasUpcomingEvents, setHasUpcomingEvents] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [menuItems, setMenuItems] = useState(DEFAULT_MENU_ITEMS);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    // Filter menu items based on user permissions
+    const visibleMenuItems = useMemo(() => {
+        let items = menuItems.filter(item => allowedPages?.includes(item.id));
+
+        // Add user management for super_admin
+        if (role === 'super_admin') {
+            const hasUserMgmt = items.find(i => i.id === 'user-management');
+            if (!hasUserMgmt) {
+                items = [...items, { id: 'user-management', icon: Settings, label: '使用者管理' }];
+            }
+        }
+
+        return items;
+    }, [menuItems, allowedPages, role]);
 
     // 從 localStorage 讀取選單順序
     useEffect(() => {
@@ -255,10 +273,10 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={menuItems.map(item => item.id)}
+                            items={visibleMenuItems.map(item => item.id)}
                             strategy={verticalListSortingStrategy}
                         >
-                            {menuItems.map(item => (
+                            {visibleMenuItems.map(item => (
                                 <SortableSidebarItem
                                     key={item.id}
                                     {...item}
@@ -315,12 +333,59 @@ export const MainLayout = ({ activeTab, setActiveTab, children }) => {
                             )}
                         </button>
 
-                        {/* User Avatar - Enhanced with gradient border */}
-                        <div className="relative group cursor-pointer">
-                            <div className="absolute -inset-0.5 bg-gradient-to-br from-gray-300 to-gray-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <div className="relative w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full border-2 border-white shadow-soft flex items-center justify-center">
-                                <span className="font-semibold text-gray-600 text-sm lg:text-base">A</span>
-                            </div>
+                        {/* User Menu */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/50 transition-all"
+                            >
+                                {user?.photoURL ? (
+                                    <img
+                                        src={user.photoURL}
+                                        alt={user.displayName}
+                                        className="w-9 h-9 lg:w-10 lg:h-10 rounded-full border-2 border-white shadow-soft object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full border-2 border-white shadow-soft flex items-center justify-center">
+                                        <span className="font-semibold text-gray-600 text-sm lg:text-base">
+                                            {user?.displayName?.[0] || 'U'}
+                                        </span>
+                                    </div>
+                                )}
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {/* User Dropdown */}
+                            {isUserMenuOpen && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                    />
+                                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-sm font-medium text-gray-800">{user?.displayName}</p>
+                                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                            <span className={`inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded-full ${role === 'super_admin' ? 'bg-purple-100 text-purple-700' :
+                                                role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                {role === 'super_admin' ? '最高管理員' : role === 'admin' ? '管理員' : '一般使用者'}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setIsUserMenuOpen(false);
+                                                signOut();
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <LogOut size={16} />
+                                            登出
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </header>
