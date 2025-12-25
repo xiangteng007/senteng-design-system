@@ -396,6 +396,10 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                                     <InputField label="聯絡人" value={currentVendor.contactPerson} onChange={e => setCurrentVendor({ ...currentVendor, contactPerson: e.target.value })} />
                                     <InputField label="電話" value={currentVendor.phone} onChange={e => setCurrentVendor({ ...currentVendor, phone: e.target.value })} />
                                 </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <InputField label="統一編號" value={currentVendor.taxId || ''} onChange={e => setCurrentVendor({ ...currentVendor, taxId: e.target.value })} placeholder="8位數統一編號" />
+                                    <InputField label="銀行帳號" value={currentVendor.bankAccount || ''} onChange={e => setCurrentVendor({ ...currentVendor, bankAccount: e.target.value })} placeholder="例：812-1234-5678-901" />
+                                </div>
                                 <LocationField label="地址" value={currentVendor.address} onChange={e => setCurrentVendor({ ...currentVendor, address: e.target.value })} />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
@@ -437,6 +441,18 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                                     <div>
                                         <span className="text-gray-500 block mb-1">LINE ID</span>
                                         <span className="text-gray-900">{activeVendor.lineId}</span>
+                                    </div>
+                                )}
+                                {activeVendor.taxId && (
+                                    <div>
+                                        <span className="text-gray-500 block mb-1">統一編號</span>
+                                        <span className="text-gray-900 font-mono">{activeVendor.taxId}</span>
+                                    </div>
+                                )}
+                                {activeVendor.bankAccount && (
+                                    <div>
+                                        <span className="text-gray-500 block mb-1">銀行帳號</span>
+                                        <span className="text-gray-900 font-mono">{activeVendor.bankAccount}</span>
                                     </div>
                                 )}
                                 {activeVendor.tags?.length > 0 && (
@@ -684,6 +700,10 @@ const Vendors = ({ data = [], loading, addToast, onUpdateVendors, allProjects = 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <InputField label="Email" value={currentVendor.email || ''} onChange={e => setCurrentVendor({ ...currentVendor, email: e.target.value })} placeholder="例：vendor@email.com" />
                             <InputField label="LINE ID" value={currentVendor.lineId || ''} onChange={e => setCurrentVendor({ ...currentVendor, lineId: e.target.value })} placeholder="例：@lineid" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <InputField label="統一編號" value={currentVendor.taxId || ''} onChange={e => setCurrentVendor({ ...currentVendor, taxId: e.target.value })} placeholder="8位數統一編號" />
+                            <InputField label="銀行帳號" value={currentVendor.bankAccount || ''} onChange={e => setCurrentVendor({ ...currentVendor, bankAccount: e.target.value })} placeholder="例：812-1234-5678-901" />
                         </div>
                         <LocationField label="地址" value={currentVendor.address} onChange={e => setCurrentVendor({ ...currentVendor, address: e.target.value })} />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

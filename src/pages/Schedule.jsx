@@ -148,9 +148,9 @@ const Schedule = ({ data = [], loans = [], addToast, onUpdateCalendar }) => {
         if (onUpdateCalendar) onUpdateCalendar(updatedEvents);
 
         if (result.success) {
-            addToast(`行程「${newEvent.title}」已新增至 Google Calendar`, 'success');
+            addToast(`✅ 行程「${newEvent.title}」已同步至 Google Calendar`, 'success');
         } else {
-            addToast(`行程已新增（本地）`, 'success');
+            addToast(`⚠️ 行程已新增（本地），但 Google 同步失敗: ${result.error}`, 'warning');
         }
 
         setNewEvent({ title: "", date: "", time: "10:00", type: "meeting", description: "", location: "" });
