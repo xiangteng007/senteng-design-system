@@ -127,6 +127,10 @@ const AppContent = () => {
               handleUpdate('projects', [...data.projects, p]);
             }
           }}
+          onDeleteProject={(projectId) => {
+            // Remove project from data array
+            handleUpdate('projects', data.projects.filter(proj => proj.id !== projectId));
+          }}
           allTransactions={data.finance.transactions}
           onAddGlobalTx={handleAddGlobalTx}
           accounts={data.finance.accounts}

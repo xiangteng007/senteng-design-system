@@ -133,7 +133,7 @@ const WidgetProjectFinanceDetail = ({ transactions, size, onAddTx, onSyncToSheet
     );
 }
 
-const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory }) => {
+const Projects = ({ data, loading, addToast, onSelectProject, activeProject, setActiveProject, onUpdateProject, onDeleteProject, allTransactions, onAddGlobalTx, accounts, allVendors, allInventory }) => {
 
     // List View State
     const [listWidgets, setListWidgets] = useState([{ id: 'wp-stats', type: 'project-stats', title: '專案概況', size: 'S' }, { id: 'wp-list', type: 'project-list', title: '專案列表', size: 'L' }]);
@@ -317,7 +317,10 @@ const Projects = ({ data, loading, addToast, onSelectProject, activeProject, set
     };
 
     const confirmDelete = () => {
-        // 只從列表中移除專案，保留Drive資料夾
+        // Remove project from data array
+        if (onDeleteProject) {
+            onDeleteProject(activeProject.id);
+        }
         addToast(`專案「${activeProject.name}」已從列表移除（Drive 資料夾保留）`, 'success');
         setIsDeleteModalOpen(false);
         setActiveProject(null);
