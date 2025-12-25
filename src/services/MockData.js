@@ -54,13 +54,7 @@ export const MOCK_DB = {
         }
     ],
     finance: {
-        accounts: [
-            { id: "a-1", name: "公司營運帳戶", bank: "台灣銀行", number: "001-****-1234", balance: 450000, type: "營運", color: "#4F46E5" },
-            { id: "a-2", name: "專案專用帳戶", bank: "國泰世華", number: "013-****-5678", balance: 280000, type: "專案", color: "#059669" },
-            { id: "a-3", name: "零用金", bank: "現金", number: "-", balance: 35000, type: "現金", color: "#DC2626" },
-            { id: "a-4", name: "材料採購帳戶", bank: "中國信託", number: "822-****-9012", balance: 125000, type: "採購", color: "#7C3AED" },
-            { id: "a-5", name: "員工薪資帳戶", bank: "玉山銀行", number: "808-****-3456", balance: 520000, type: "薪資", color: "#F59E0B" }
-        ],
+        accounts: [],
         transactions: [],
         loans: []
     },
