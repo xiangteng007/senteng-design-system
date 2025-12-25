@@ -99,7 +99,8 @@ export const MOCK_DB = {
             { id: "a-4", name: "材料採購帳戶", bank: "中國信託", number: "822-****-9012", balance: 125000, type: "採購", color: "#7C3AED" },
             { id: "a-5", name: "員工薪資帳戶", bank: "玉山銀行", number: "808-****-3456", balance: 520000, type: "薪資", color: "#F59E0B" }
         ],
-        transactions: []
+        transactions: [],
+        loans: []
     },
     vendors: [
         { id: "v-1", name: "大師兄精緻木工坊", category: "工程工班", tradeType: "木工", contactPerson: "王大哥", phone: "0912-345-678", address: "新北市板橋區文化路一段...", status: "長期合作", rating: 4.9, lastProject: "信義區林公館", tags: ["配合度高", "手工細緻"] },

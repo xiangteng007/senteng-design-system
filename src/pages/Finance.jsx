@@ -4,10 +4,12 @@ import { WidgetWrapper } from '../components/common/WidgetWrapper';
 import { WidgetFinanceAccounts, WidgetFinanceTrend, WidgetFinanceTransactions } from '../components/widgets/FinanceWidgets';
 import { AccountDetailsModal } from '../components/finance/AccountDetailsModal';
 import { FinanceExportModal, FinanceSearchBar } from '../components/finance/FinanceExportModal';
+import { LoanAccountCard } from '../components/finance/LoanAccountCard';
+import { LoanAccountModal } from '../components/finance/LoanAccountModal';
 import { Modal } from '../components/common/Modal';
 import { InputField } from '../components/common/InputField';
 import { SectionTitle } from '../components/common/Indicators';
-import { Plus, Download, Search } from 'lucide-react';
+import { Plus, Download, Search, Building2 } from 'lucide-react';
 import { GoogleService } from '../services/GoogleService';
 
 // 收支類別選項
@@ -16,7 +18,7 @@ const TX_CATEGORIES = {
     '支出': ['材料費', '人工費', '設備費', '運輸費', '其他支出']
 };
 
-const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjects = [] }) => {
+const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, onUpdateLoans, allProjects = [] }) => {
     const [accounts, setAccounts] = useState(data.accounts || []);
     const accountsRef = useRef(accounts);
 
@@ -31,9 +33,22 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
     }, [accounts]);
     const [widgets, setWidgets] = useState([
         { id: 'wf-acc', type: 'finance-acc', title: '資金帳戶', size: 'L' },
+        { id: 'wf-loans', type: 'finance-loans', title: '貸款帳戶', size: 'L' },
         { id: 'wf-trend', type: 'finance-trend', title: '收支趨勢', size: 'M' },
         { id: 'wf-tx', type: 'finance-tx', title: '收支明細', size: 'L' }
     ]);
+
+    // Loan State
+    const [loans, setLoans] = useState(data.loans || []);
+    const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+    const [editingLoan, setEditingLoan] = useState(null);
+    const [isDeleteLoanModalOpen, setIsDeleteLoanModalOpen] = useState(false);
+    const [deletingLoan, setDeletingLoan] = useState(null);
+
+    // Sync loans when data.loans changes
+    useEffect(() => {
+        setLoans(data.loans || []);
+    }, [data.loans]);
 
     // Transaction Modal State
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -128,6 +143,56 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
         setIsDetailsModalOpen(true);
     };
 
+    // Loan CRUD Handlers
+    const openAddLoan = () => {
+        setEditingLoan(null);
+        setIsLoanModalOpen(true);
+    };
+
+    const openEditLoan = (loan) => {
+        setEditingLoan(loan);
+        setIsLoanModalOpen(true);
+    };
+
+    const handleSaveLoan = (loanData) => {
+        const updatedLoans = editingLoan
+            ? loans.map(l => l.id === editingLoan.id ? loanData : l)
+            : [...loans, loanData];
+
+        setLoans(updatedLoans);
+        if (onUpdateLoans) onUpdateLoans(updatedLoans);
+        addToast(editingLoan ? '貸款帳戶已更新！' : '貸款帳戶已新增！', 'success');
+        setIsLoanModalOpen(false);
+        setEditingLoan(null);
+    };
+
+    const handleDeleteLoan = (loan) => {
+        setDeletingLoan(loan);
+        setIsDeleteLoanModalOpen(true);
+    };
+
+    const confirmDeleteLoan = () => {
+        const updatedLoans = loans.filter(l => l.id !== deletingLoan.id);
+        setLoans(updatedLoans);
+        if (onUpdateLoans) onUpdateLoans(updatedLoans);
+        addToast(`貸款帳戶「${deletingLoan.bankName}」已刪除`, 'success');
+        setIsDeleteLoanModalOpen(false);
+        setDeletingLoan(null);
+    };
+
+    const handleRecordLoanPayment = (loan) => {
+        // 記錄還款 - 更新已還期數
+        const updatedLoan = {
+            ...loan,
+            paidTerms: loan.paidTerms + 1,
+            status: loan.paidTerms + 1 >= loan.totalTerms ? 'completed' : 'active'
+        };
+        const updatedLoans = loans.map(l => l.id === loan.id ? updatedLoan : l);
+        setLoans(updatedLoans);
+        if (onUpdateLoans) onUpdateLoans(updatedLoans);
+        addToast(`已記錄第 ${updatedLoan.paidTerms} 期還款`, 'success');
+    };
+
     // Finance Export Handler
     const handleExportFinance = async (transactions, options) => {
         const result = await GoogleService.exportFinanceReport(transactions, options);
@@ -211,6 +276,42 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
                             onDragOverAccount={handleDragOverAccount}
                             onDragEndAccount={handleDragEndAccount}
                         />
+                    </div>
+                );
+            case 'finance-loans':
+                // 計算貸款總額
+                const totalLoanAmount = loans.reduce((sum, l) => sum + (l.remainingPrincipal || l.principalAmount || 0), 0);
+                return (
+                    <div className="h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-2">
+                                <Building2 size={16} className="text-blue-600" />
+                                <span className="text-sm text-gray-500">
+                                    總貸款餘額: <span className="font-bold text-gray-800">${totalLoanAmount.toLocaleString()}</span>
+                                </span>
+                            </div>
+                            <button onClick={openAddLoan} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                                <Plus size={12} /> 新增貸款
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-1">
+                            {loans.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+                                    <Building2 size={32} className="mb-2 opacity-50" />
+                                    <p className="text-sm">尚無貸款帳戶</p>
+                                    <button onClick={openAddLoan} className="mt-2 text-xs text-blue-600 hover:underline">新增貸款</button>
+                                </div>
+                            ) : (
+                                loans.map(loan => (
+                                    <LoanAccountCard
+                                        key={loan.id}
+                                        loan={loan}
+                                        onEdit={openEditLoan}
+                                        onRecordPayment={handleRecordLoanPayment}
+                                    />
+                                ))
+                            )}
+                        </div>
                     </div>
                 );
             case 'finance-trend': return <WidgetFinanceTrend size={w.size} />;
@@ -321,6 +422,35 @@ const Finance = ({ data, loading, addToast, onAddTx, onUpdateAccounts, allProjec
                 projects={allProjects}
                 onExport={handleExportFinance}
             />
+
+            {/* Loan Account Modal */}
+            <LoanAccountModal
+                isOpen={isLoanModalOpen}
+                onClose={() => { setIsLoanModalOpen(false); setEditingLoan(null); }}
+                onConfirm={handleSaveLoan}
+                editingLoan={editingLoan}
+            />
+
+            {/* Delete Loan Modal */}
+            <Modal
+                isOpen={isDeleteLoanModalOpen}
+                onClose={() => setIsDeleteLoanModalOpen(false)}
+                title="確認刪除貸款帳戶"
+                onConfirm={confirmDeleteLoan}
+                confirmText="確定刪除"
+            >
+                <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                        <p className="text-red-800 font-medium">⚠️ 警告：此操作無法復原</p>
+                    </div>
+                    <p className="text-gray-700">
+                        您確定要刪除貸款帳戶「<span className="font-bold">{deletingLoan?.bankName}</span>」嗎？
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        貸款金額：${deletingLoan?.principalAmount?.toLocaleString() || 0}
+                    </p>
+                </div>
+            </Modal>
         </div>
     );
 };
