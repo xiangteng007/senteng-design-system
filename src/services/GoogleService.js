@@ -277,6 +277,31 @@ export const GoogleService = {
     }
   },
 
+  // 客戶專用：在指定的「客戶資料」資料夾下建立客戶資料夾
+  createClientFolder: async (clientName) => {
+    const CLIENT_PARENT_FOLDER_ID = '1UcrNx19PWNvOR1gau8oywjFsIlNh22r0';
+    console.log(`📁 Creating client folder: ${clientName} (in client root)`);
+
+    try {
+      const result = await callGASWithJSONP('create_drive_folder', {
+        folderName: clientName,
+        parentId: CLIENT_PARENT_FOLDER_ID
+      });
+
+      if (result.success) {
+        const folderUrl = result.data?.folderUrl || `https://drive.google.com/drive/folders/${result.data?.folderId || 'unknown'}`;
+        console.log(`✅ Client folder created: ${folderUrl}`);
+        return { success: true, url: folderUrl, folderId: result.data?.folderId };
+      } else {
+        console.error(`❌ Client folder creation failed:`, result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('GAS API Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   // 列出指定資料夾內的子資料夾（用於關聯現有資料夾）
   listDriveFolders: async (parentFolderId = null) => {
     console.log(`📂 Listing Drive folders...`);

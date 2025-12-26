@@ -149,7 +149,7 @@ const Clients = ({ data = [], loading, addToast, onUpdateClients, allProjects = 
         if (!newClientData.name) return addToast("請輸入姓名", "error");
 
         setIsSaving(true);
-        const driveResult = await GoogleService.createDriveFolder(newClientData.name);
+        const driveResult = await GoogleService.createClientFolder(newClientData.name);
 
         if (!driveResult.success) {
             setIsSaving(false);
