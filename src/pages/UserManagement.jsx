@@ -35,7 +35,7 @@ const ALL_PAGES = [
     { id: 'finance', label: '財務管理', icon: '💰' },
     { id: 'vendors', label: '廠商管理', icon: '🏗️' },
     { id: 'inventory', label: '庫存管理', icon: '📦' },
-    { id: 'materials', label: '材質圖庫', icon: '🖼️' },
+    { id: 'materials', label: '建材資料', icon: '🖼️' },
     { id: 'invoice', label: '發票小幫手', icon: '🧾' },
     { id: 'unit', label: '單位換算', icon: '📐' },
     { id: 'cost', label: '成本估算', icon: '🧮' },
@@ -212,8 +212,8 @@ const UserManagement = ({ addToast }) => {
                 <button
                     onClick={() => setActiveTab('users')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'users'
-                            ? 'bg-white text-gray-800 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <Users size={16} />
@@ -222,8 +222,8 @@ const UserManagement = ({ addToast }) => {
                 <button
                     onClick={() => setActiveTab('roles')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'roles'
-                            ? 'bg-white text-gray-800 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <Shield size={16} />

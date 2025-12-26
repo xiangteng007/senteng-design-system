@@ -32,7 +32,7 @@ const DEFAULT_MENU_ITEMS = [
     { id: 'finance', icon: Wallet, label: '財務管理' },
     { id: 'vendors', icon: HardHat, label: '廠商管理' },
     { id: 'inventory', icon: Package, label: '庫存管理' },
-    { id: 'materials', icon: ImageIcon, label: '材質圖庫' },
+    { id: 'materials', icon: ImageIcon, label: '建材資料' },
     { id: 'invoice', icon: FileText, label: '發票小幫手' },
     { id: 'unit', icon: Ruler, label: '單位換算' },
     { id: 'cost', icon: Calculator, label: '成本估算' },
